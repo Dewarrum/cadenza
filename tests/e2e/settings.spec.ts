@@ -8,6 +8,9 @@ test("a rebound lane key plays, a taken key is refused, the best result shows on
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/?clock=manual");
   await page.locator("#title").click();
+  await page.locator("#open-about").click();
+  await expect(page.locator("#about .license")).toHaveText(["CC BY-SA 3.0", "CC BY-SA 4.0"]);
+  await page.locator("#about-back").click();
   await page.locator("#open-settings").click();
 
   const lane1 = page.locator('#keys button[data-lane="0"]');
