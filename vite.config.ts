@@ -10,7 +10,7 @@ import { SAMPLES_CACHE } from "./src/audio/samples.ts";
 // `npm run dev:tailnet` (CADENZA_TAILNET=1) pins the socket to the proxy explicitly.
 const TAILNET_HOST = "studio.tail4d4c2e.ts.net";
 const tailnet = process.env.CADENZA_TAILNET === "1";
-const THEME = "#0b0908";
+const THEME = "#0e0b09";
 
 // `virtual:pieces`: the piece list needs titles and levels only. Each pieces/<id>.json becomes a
 // separate asset (`?url`) that the game fetches when a tier is picked; the service worker
@@ -71,7 +71,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,json}"],
+        globPatterns: ["**/*.{js,css,html,json,woff2}"],
         clientsClaim: true,
         cleanupOutdatedCaches: true,
         runtimeCaching: [
