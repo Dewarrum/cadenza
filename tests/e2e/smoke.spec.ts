@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { playPerfect } from "./bot.ts";
 
 type Note = { time: number; lane: number; hold: number };
 type Hook = {
@@ -53,28 +54,12 @@ test("a bot plays the Nocturne on Easy and reaches the results screen", async ({
 // A perfect bot proves the chart is hittable: chords, holds over other lanes' notes, and no two
 // notes in a lane closer than the judge can tell apart.
 test("a perfect bot plays the Rachmaninoff on Hard", async ({ page }) => {
-  const { errors, notes, end, advance } = await open(page, "Prelude", "hard");
-  const chords = new Set(notes.map((n) => n.time)).size;
-  expect(chords).toBeLessThan(notes.length); // there are chords
-
-  // Key presses on the note times, releases after a hold's tail or 30 ms after a tap; releases
-  // go first when both fall on one time.
-  const events = notes
-    .flatMap((n) => [
-      { t: n.time, down: true, key: LANE_KEYS[n.lane] },
-      { t: n.time + (n.hold ? n.hold + 20 : 30), down: false, key: LANE_KEYS[n.lane] },
-    ])
-    .sort((a, b) => a.t - b.t || Number(a.down) - Number(b.down));
-  let now = -Infinity;
-  for (const e of events) {
-    if (e.t !== now) await advance((now = e.t));
-    await (e.down ? page.keyboard.down(e.key) : page.keyboard.up(e.key));
-  }
-  await advance(end + 2000);
-
-  await expect(page.locator("#results")).toBeVisible();
-  const summary = (await page.evaluate(() => window.__cadenza.summary))!;
-  expect(summary.accuracy).toBeGreaterThan(90);
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("/?clock=manual");
+  await page.locator("#title").click();
+  const { notes, summary } = await playPerfect(page, "Prelude", "hard", LANE_KEYS);
+  expect(new Set(notes.map((n) => n.time)).size).toBeLessThan(notes.length); // there are chords
   expect(summary.counts.perfect).toBe(notes.length);
   expect(errors).toEqual([]);
 });

@@ -11,7 +11,7 @@ export default defineConfig({
     launchOptions: { args: ["--autoplay-policy=no-user-gesture-required"] },
   },
   projects: [
-    { name: "desktop", testMatch: "smoke.spec.ts" },
+    { name: "desktop", testMatch: ["smoke.spec.ts", "settings.spec.ts", "offline.spec.ts"] },
     { name: "phone", testMatch: "phone.spec.ts", use: { ...devices["Pixel 7"] } },
   ],
   webServer: {
