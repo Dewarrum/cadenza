@@ -1,0 +1,25 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      # Both e2e projects (desktop, and the Pixel 7 phone with touch) run in Chromium against
+      # the build above, served by `vite preview`.
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test
