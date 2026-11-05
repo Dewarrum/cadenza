@@ -33,7 +33,11 @@ export function recordResult(pieceId: string, tier: TierName, run: Summary): { b
   const previous = results[pieceId]?.[tier];
   const { best, isNew } = mergeBest(previous, run, new Date().toISOString());
   results[pieceId] = { ...results[pieceId], [tier]: best };
-  localStorage.setItem(RESULTS_KEY, JSON.stringify(results));
+  try {
+    localStorage.setItem(RESULTS_KEY, JSON.stringify(results));
+  } catch {
+    // storage full or blocked: the results screen still shows the comparison
+  }
   return { best, previous, isNew };
 }
 

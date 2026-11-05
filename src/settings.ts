@@ -55,8 +55,12 @@ export function loadSettings(): Settings {
 }
 
 export function saveSettings(s: Settings): void {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
-  localStorage.removeItem(LEGACY_HOWTO_KEY);
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+    localStorage.removeItem(LEGACY_HOWTO_KEY);
+  } catch {
+    // storage full or blocked: the settings still apply for this visit
+  }
 }
 
 export const approachFor = (s: Settings, tier: TierName) => s.approachMs ?? DEFAULT_APPROACH_MS[tier];

@@ -7,12 +7,20 @@ import { SAMPLES_CACHE } from "./audio/samples.ts";
 
 export function startPwa(): void {
   if (!("serviceWorker" in navigator)) return;
+  // workbox-window reloads only pages that had a controller when they registered; a first
+  // visit kept open until the next version reloads on the controller change itself.
+  let reloading = false;
+  const reload = () => !reloading && ((reloading = true), location.reload());
   const update = registerSW({
     onNeedRefresh: () => (document.getElementById("update")!.hidden = false),
+    onNeedReload: reload,
     onRegisteredSW: (_url, registration) =>
       document.addEventListener("visibilitychange", () => !document.hidden && void registration?.update().catch(() => {})),
   });
-  document.getElementById("update-reload")!.addEventListener("click", () => void update(true));
+  document.getElementById("update-reload")!.addEventListener("click", () => {
+    navigator.serviceWorker.addEventListener("controllerchange", reload, { once: true });
+    void update(true);
+  });
   // Sample caches of earlier versions (SAMPLES_CACHE was bumped) go.
   if ("caches" in window)
     caches
