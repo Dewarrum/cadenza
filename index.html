@@ -4,7 +4,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#0b0908" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <title>Cadenza</title>
+    <link rel="icon" type="image/png" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
@@ -19,8 +24,10 @@
         <h2>Pieces</h2>
         <p class="hint small ios-only" hidden>If you hear nothing, check the mute switch</p>
         <div class="progress" aria-label="Loading piano"><div id="progress-bar"></div></div>
+        <p id="piano-status" class="hint small">Loading piano</p>
         <ul id="pieces"></ul>
-        <p class="hint">Tap the lanes, or keys D F J K · Space hits any lane on Easy · Esc pauses</p>
+        <p class="hint">Tap the lanes, or keys <span class="keys-hint">D F J K</span> · Space hits any lane on Easy · Esc pauses</p>
+        <button id="open-settings" type="button" class="quiet">Settings</button>
       </section>
 
       <section id="howto" class="screen" hidden>
@@ -47,7 +54,7 @@
           <li><b>Hold</b> long notes until the tail has passed.</li>
           <li><b>Chords</b>: notes side by side, one finger each.</li>
         </ul>
-        <p class="hint">Keys D F J K · Esc pauses</p>
+        <p class="hint">Keys <span class="keys-hint">D F J K</span> · Esc pauses</p>
         <p class="hint">Tap to start</p>
       </section>
 
@@ -60,6 +67,7 @@
           <h2>Paused</h2>
           <button id="resume" type="button">Resume</button>
           <button id="restart" type="button">Restart</button>
+          <button id="pause-settings" type="button">Settings</button>
           <button id="quit" type="button">Quit to list</button>
         </div>
       </section>
@@ -69,10 +77,61 @@
         <div id="grade" class="grade"></div>
         <p id="accuracy" class="accuracy"></p>
         <p id="full-combo" class="full-combo" hidden>Full Combo</p>
+        <p id="best" class="best-line"></p>
         <dl id="counts"></dl>
         <button id="back" type="button">Back to pieces</button>
       </section>
+
+      <section id="settings" class="screen" hidden>
+        <h2>Settings</h2>
+        <div class="setting">
+          <span class="label">Audio offset</span>
+          <div class="row">
+            <button id="offset-down" type="button" aria-label="Decrease offset">−</button>
+            <output id="offset-value"></output>
+            <button id="offset-up" type="button" aria-label="Increase offset">+</button>
+          </div>
+          <p id="offset-note" class="hint small"></p>
+          <button id="calibrate" type="button">Calibrate</button>
+        </div>
+        <div class="setting">
+          <label class="label" for="approach">Approach time <output id="approach-value"></output></label>
+          <input id="approach" type="range" />
+          <button id="approach-reset" type="button" class="quiet">Reset to defaults</button>
+        </div>
+        <div class="setting">
+          <label class="label" for="volume">Volume <output id="volume-value"></output></label>
+          <input id="volume" type="range" min="0" max="100" step="5" />
+        </div>
+        <div class="setting">
+          <label class="label toggle"><input id="keysound" type="checkbox" /> Key sound</label>
+          <p class="hint small">Off: the whole piece plays by itself and hits only score. From the next play.</p>
+        </div>
+        <div class="setting">
+          <span class="label">Keys</span>
+          <div id="keys" class="row keys"></div>
+          <p id="keys-note" class="hint small">Click a lane, then press a key</p>
+        </div>
+        <div class="setting">
+          <button id="howto-again" type="button" class="quiet">Show how-to card again</button>
+          <button id="clear-results" type="button" class="quiet">Clear all results</button>
+          <p id="settings-note" class="hint small" hidden></p>
+        </div>
+        <button id="settings-back" type="button">Back</button>
+      </section>
+
+      <section id="calibration" class="screen" hidden>
+        <h2>Calibrate</h2>
+        <p class="hint">Listen for the clicks and tap on each one: anywhere on the pad, or any key.<br />Four clicks count in, then sixteen to tap.</p>
+        <div id="cal-pad" class="pad"><span id="cal-status"></span><small id="cal-count"></small></div>
+        <div id="cal-result" class="row" hidden>
+          <button id="cal-apply" type="button">Apply</button>
+          <button id="cal-retry" type="button">Retry</button>
+        </div>
+        <button id="cal-cancel" type="button" class="quiet">Cancel</button>
+      </section>
     </main>
+    <div id="update" class="toast" hidden>Update available <button id="update-reload" type="button">Reload</button></div>
     <div id="rotate" class="rotate" hidden><p>Rotate your phone to portrait</p></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

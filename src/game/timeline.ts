@@ -12,7 +12,7 @@ const START_BEATS = 4;
 const RESUME_BEATS = 3;
 const START_LEAD_MS = 600; // silence before the first count-in click
 const RESUME_LEAD_MS = 300;
-const FIRST_NOTE_MS = 1500; // the first note needs the approach time to fall in
+
 const REWIND_MS = 2000;
 
 // The `n` grid beats right before song time `at`. Before the first bar the grid runs on
@@ -23,9 +23,10 @@ export function beatsBefore({ bars, beats, beatMs }: Grid, at: number, n: number
   return [...pre, ...beats.filter((t) => t >= bars[0])].filter((t) => t < at).slice(-n);
 }
 
-export function startRun(grid: Grid): Run {
+// The first note needs the approach time to fall in from the top.
+export function startRun(grid: Grid, approachMs = 1500): Run {
   const clicks = beatsBefore(grid, grid.bars[0], START_BEATS);
-  return { start: Math.min(clicks[0], -FIRST_NOTE_MS) - START_LEAD_MS, clicks, soundFrom: -Infinity };
+  return { start: Math.min(clicks[0], -approachMs) - START_LEAD_MS, clicks, soundFrom: -Infinity };
 }
 
 // After a pause at `pausedAt` the clock goes back about 2 s (further when three beats of the

@@ -39,11 +39,16 @@ export class Playfield {
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     this.g = canvas.getContext("2d")!;
-    // Orientation, toolbar and window changes; a paused picture is redrawn at the new size.
-    new ResizeObserver(() => {
+    // Orientation, toolbar and window changes; a paused picture is redrawn at the new size. A
+    // pixel ratio change without a size change (zoom, another screen) redraws too.
+    const redraw = () => {
       this.resize();
       if (this.lastFrame) this.draw(...this.lastFrame);
-    }).observe(canvas);
+    };
+    new ResizeObserver(redraw).observe(canvas);
+    const watchRatio = () =>
+      matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`).addEventListener("change", () => (redraw(), watchRatio()), { once: true });
+    watchRatio();
   }
 
   resize(): void {

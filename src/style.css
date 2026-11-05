@@ -173,3 +173,61 @@ button small { display: block; font-size: 0.7rem; opacity: 0.7; }
 
 #counts dt { color: var(--muted); text-align: left; }
 #counts dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Results: best comparison; piece list: best grade per tier. */
+.best-line { color: var(--muted); margin: 0; font-size: 0.9rem; }
+.best-line.new { color: var(--gold); }
+.tiers button small.best { font-weight: bold; opacity: 0.9; }
+
+button.quiet { background: transparent; color: var(--ivory); border: 1px solid rgba(243, 234, 216, 0.25); min-height: 2.6rem; }
+
+/* Settings and calibration: plain controls; the design pass (S5) restyles them. */
+#settings { justify-content: flex-start; }
+#settings::before, #settings::after { content: ""; margin-block: auto; }
+.setting { width: 100%; display: grid; gap: 0.4rem; justify-items: center; }
+.setting .label { color: var(--muted); font-size: 0.85rem; }
+.setting .toggle { display: flex; gap: 0.5rem; align-items: center; color: var(--ivory); font-size: 1rem; }
+.row { display: flex; gap: 0.5rem; align-items: center; justify-content: center; }
+.row output { min-width: 5rem; font-variant-numeric: tabular-nums; }
+.setting input[type="range"] { width: 100%; accent-color: var(--gold); }
+.keys button { width: 3.2rem; }
+.keys button.binding { background: var(--gold); }
+#settings-back, #cal-cancel { width: min(16rem, 100%); }
+
+.pad {
+  width: 100%;
+  flex: 1;
+  max-height: 45vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px dashed rgba(243, 234, 216, 0.3);
+  border-radius: 0.8rem;
+  cursor: pointer;
+  touch-action: none;
+}
+.pad.running { border-style: solid; border-color: var(--gold); }
+#cal-status { font-family: Georgia, serif; font-size: 1.8rem; }
+#cal-count { color: var(--muted); }
+#cal-result[hidden] { display: none; }
+
+/* "Update available" toast; never over the play screen. */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  padding: 0.5rem 0.5rem 0.5rem 1rem;
+  border-radius: 0.6rem;
+  background: #221d18;
+  color: var(--ivory);
+  white-space: nowrap;
+}
+.toast button { min-height: 2.4rem; }
+.toast[hidden], body[data-screen="play"] .toast { display: none; }

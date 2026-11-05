@@ -18,6 +18,11 @@ export const SAMPLE_LAYERS = [
 
 export const SAMPLE_FORMATS = ["ogg", "m4a"];
 
+// Cache Storage name for the samples, shared by the page (piano.ts) and the service worker
+// (vite.config.ts). Bump the version when the sample files change: the page then deletes the
+// old cache (pwa.ts) and every player downloads the new set once.
+export const SAMPLES_CACHE = "cadenza-samples-v1";
+
 export function sampleFile(layerFile: string, root: number): string {
   return `${layerFile}-${root}`;
 }

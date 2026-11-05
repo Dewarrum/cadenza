@@ -1,6 +1,8 @@
 // Timing judgement. Pure functions; times in ms on the song clock (tempo factor applied).
-// `offset` is the global audio offset from calibration: a positive offset means the player's
-// taps land that much late, so it is subtracted from every tap before judging.
+// Sign convention: `offset` is the global audio offset from calibration, positive when the
+// player's taps land late, and it is subtracted from every tap before judging (+40 means a tap
+// 40 ms after the note's time is Perfect). The song clock already compensates the output
+// latency the browser reports, so this is only the rest. Note positions on screen never move.
 
 export const WINDOWS = { perfect: 50, great: 95, good: 140, earlyMiss: 180 };
 export const HOLD_OK = 0.8; // a hold kept for less than this fraction is broken

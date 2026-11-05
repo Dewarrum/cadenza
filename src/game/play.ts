@@ -27,7 +27,7 @@ export class Play {
   last: { judgement: Judgement; time: number; lane: number } | null = null;
   private readonly holds = new Map<Source, ActiveHold>();
   private readonly sound: Sound;
-  private readonly offset: number;
+  offset: number; // global audio offset, see judge.ts; settings may change it while paused
   private readonly anyLane: boolean;
   private expiryCursor = 0;
 

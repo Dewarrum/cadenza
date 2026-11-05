@@ -14,7 +14,8 @@
     "test:e2e": "vite build && playwright test",
     "piece:add": "node tools/piece-add.ts",
     "pieces:build": "node tools/pieces-build.ts",
-    "samples:fetch": "node tools/fetch-samples.ts"
+    "samples:fetch": "node tools/fetch-samples.ts",
+    "icons": "node tools/make-icons.ts"
   },
   "dependencies": {
     "smplr": "^1.1.0"

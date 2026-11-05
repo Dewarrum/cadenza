@@ -5,10 +5,11 @@ import type { AutoNote, Chart, PlayNote } from "../game/chart.ts";
 import type { Run } from "../game/timeline.ts";
 import { loadPiano, type Piano } from "./piano.ts";
 
-const LOOKAHEAD_MS = 200;
+const LOOKAHEAD_MS = 200; // notes that play by themselves; hit sounds go straight onto the timeline (piano.ts)
 const STALE_MS = 100; // a note this late when the timer gets to it is dropped, not played in a burst
 const SCHEDULER_INTERVAL_MS = 25;
 const HOLD_RELEASE_S = 0.15; // damper when a hold is let go early
+const BASE_GAIN = 2; // smplr maps velocity to gain quadratically, so p passages are quiet; the compressor catches peaks
 
 // Song clock in ms. now() is what the player hears; fromEvent() maps an event timestamp
 // (performance.now() timebase); toAudio() maps song time onto the AudioContext timeline.
@@ -27,11 +28,12 @@ export class AudioClock implements Clock {
     this.origin = this.heard(performance.now()) - songMsNow / 1000;
   }
 
-  // Context time of the sample reaching the speakers at `perfTime`.
+  // Context time of the sample reaching the speakers at `perfTime`. A context that is not running
+  // stands still: the output timestamp would keep advancing on wall time from its last value.
   private heard(perfTime: number): number {
-    const ts = this.ctx.getOutputTimestamp?.();
+    const ts = this.ctx.state === "running" ? this.ctx.getOutputTimestamp?.() : undefined;
     if (ts?.contextTime && ts.performanceTime) return ts.contextTime + (perfTime - ts.performanceTime) / 1000;
-    return this.ctx.currentTime - (this.ctx.outputLatency || this.ctx.baseLatency || 0);
+    return this.ctx.currentTime - reportedLatency(this.ctx);
   }
 
   now(): number {
@@ -45,6 +47,12 @@ export class AudioClock implements Clock {
   toAudio(songMs: number): number {
     return this.origin + songMs / 1000;
   }
+}
+
+// Output latency the browser reports, in seconds. AudioClock compensates it; it also seeds the
+// audio offset shown in the settings.
+export function reportedLatency(ctx: AudioContext): number {
+  return ctx.outputLatency || ctx.baseLatency || 0;
 }
 
 // Test clock driven by the e2e bot through window.__cadenza; audio then plays "now".
@@ -85,8 +93,13 @@ export class AudioEngine {
     const compressor = this.ctx.createDynamicsCompressor();
     compressor.connect(this.ctx.destination);
     this.out = this.ctx.createGain();
-    this.out.gain.value = 2; // smplr maps velocity to gain quadratically, so p passages are quiet; the compressor catches peaks
+    this.out.gain.value = BASE_GAIN;
     this.out.connect(compressor);
+  }
+
+  // Master volume 0-1, applied at once (also mid-piece).
+  setVolume(volume: number): void {
+    this.out.gain.setTargetAtTime(BASE_GAIN * volume, this.ctx.currentTime, 0.02);
   }
 
   // Call inside a user gesture: resumes the context, and the silent buffer unlocks iOS Safari.
@@ -167,7 +180,9 @@ export class AudioEngine {
     }
   }
 
-  private click(time: number, accent: boolean): void {
+  // A count-in click at context time `time`, through the same output path as the piano.
+  // Silenced by stop().
+  click(time: number, accent: boolean): void {
     const osc = this.ctx.createOscillator();
     const env = this.ctx.createGain();
     osc.frequency.value = accent ? 1760 : 1320;
