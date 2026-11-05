@@ -12,7 +12,6 @@ const START_BEATS = 4;
 const RESUME_BEATS = 3;
 const START_LEAD_MS = 600; // silence before the first count-in click
 const RESUME_LEAD_MS = 300;
-
 const REWIND_MS = 2000;
 
 // The `n` grid beats right before song time `at`. Before the first bar the grid runs on

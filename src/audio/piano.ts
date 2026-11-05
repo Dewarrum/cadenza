@@ -45,7 +45,7 @@ const sampleCache = (): Promise<Cache | null> =>
 
 // True when a full set of samples sits in the cache, i.e. the piano loads offline.
 export async function samplesCached(): Promise<boolean> {
-  const keys = (await (await sampleCache())?.keys()) ?? [];
+  const keys = (await (await sampleCache())?.keys().catch(() => null)) ?? [];
   return keys.length >= SAMPLE_ROOTS.length * SAMPLE_LAYERS.length;
 }
 
