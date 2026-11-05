@@ -26,8 +26,9 @@ export function buildChart(piece: Piece, tierName: TierName, keySound: boolean):
   const tier = piece.tiers[tierName];
   const k = 1 / tier.tempoFactor;
   const charted = new Set(tier.notes.map((n) => n.id));
+  const byId = new Map(piece.notes.map((n) => [n.id, n]));
   const notes = tier.notes.map((c) => {
-    const n = piece.notes[c.id];
+    const n = byId.get(c.id)!;
     return { time: n.start * k, lane: c.lane, hold: (c.hold ?? 0) * k, pitch: n.pitch, velocity: n.velocity, duration: n.duration * k };
   });
   const auto = piece.notes

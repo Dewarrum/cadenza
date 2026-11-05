@@ -4,7 +4,7 @@
 export type Hand = "R" | "L";
 
 export type PieceNote = {
-  id: number;
+  id: string; // "<track>:<tick>:<pitch>", stable across regenerations; overrides refer to it
   pitch: number; // MIDI note number
   start: number;
   duration: number;
@@ -14,7 +14,7 @@ export type PieceNote = {
 };
 
 export type ChartNote = {
-  id: number; // PieceNote id
+  id: string; // PieceNote id
   lane: number; // 0-3
   hold?: number; // hold length in ms; absent for taps
 };
@@ -23,7 +23,7 @@ export type Tier = {
   level: number; // 1-10
   tempoFactor: number; // 1.0 = written tempo
   notes: ChartNote[]; // sorted by start time
-  chords: number[][]; // groups of PieceNote ids hit together
+  chords: string[][]; // groups of PieceNote ids hit together
 };
 
 export type TierName = "easy" | "normal" | "hard";
@@ -36,7 +36,7 @@ export type Piece = {
   duration: number;
   source: { url: string; page: string; engraver: string };
   license: string;
-  tempoMap: { start: number; qpm: number }[]; // qpm = quarter notes per minute
+  tempoMap: { start: number; qpm: number; ramp?: true }[]; // qpm = quarter notes per minute; ramp = changes gradually from the previous point
   timeSignatures: { start: number; numerator: number; denominator: number }[];
   bars: number[]; // downbeat times
   beats: number[]; // beat times (dotted quarters in compound meters)

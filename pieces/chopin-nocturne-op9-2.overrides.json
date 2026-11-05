@@ -1,0 +1,20 @@
+{
+  "comment": [
+    "pickup: the piece opens with an eighth-note anacrusis (\\partial 8). Bars count from the first full bar; the cadenza (senza tempo) fills grid bars 32-35, so the last two bars of the score are grid bars 36-37.",
+    "tempoMap: the MIDI plays the cadenza and the ending in strict time. Fermata on the cadenza's B-flat octave (bar 32), the run in time, 'rallent. smorz.' over its last two beats and a half, a tempo for the coda, a ritardando into the last chord and its fermata.",
+    "laneOverrides 1:71616:95: the cadenza's ff C-flat octave stepped down from the C before it and landed in lane 2; on Hard the left-hand arpeggio rising under that hold then had to go round it and crossed to its right (D4 in lane 3). Pinned to lane 3, the arpeggio climbs lanes 0-2 under it.",
+    "drop 1:17236:80, 1:49684:79: acciaccaturas (bars 8 and 21) that the MIDI plays for 102 ms, above the 80 ms ornament rule; Hard charted each as a second strike of the same key, in the same lane, 123 ms after the note before it."
+  ],
+  "pickup": "1/8",
+  "tempoMap": [
+    { "bar": 32, "beat": 3.6667, "ratio": 0.6 },
+    { "bar": 33, "beat": 1.6667, "ratio": 1 },
+    { "bar": 35, "beat": 2.3333, "ratio": 1 },
+    { "bar": 36, "ratio": 0.75, "ramp": true },
+    { "bar": 36, "ratio": 1 },
+    { "bar": 37, "beat": 3, "ratio": 0.75, "ramp": true },
+    { "bar": 37, "beat": 3, "ratio": 0.5 }
+  ],
+  "laneOverrides": { "1:71616:95": 3 },
+  "drop": ["1:17236:80", "1:49684:79"]
+}

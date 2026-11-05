@@ -97,16 +97,20 @@ export function readMidi(bytes: Uint8Array): MidiData {
   return { ppq, tracks, tempos, timeSignatures, endTick, usesVolumeDynamics, tickToMs };
 }
 
-const RIGHT_NAME = /right|upper|treble|\brh\b|oben|destra|droite/i;
-const LEFT_NAME = /left|lower|bass|\blh\b|unten|sinistra|gauche/i;
+// LilyPond names MIDI tracks after the staves: "upper"/"lower", or "upA"/"upB"/"downA"/"downB"
+// when a piece needs extra staves (each hand spread over two staves in a climax).
+const RIGHT_NAME = /^up|upper|right|treble|\brh\b|oben|destra|droite/i;
+const LEFT_NAME = /^down|lower|left|bass|\blh\b|unten|sinistra|gauche/i;
 
 // Decides which hand each note track belongs to. Mutopia/LilyPond files have one track per staff
-// (sometimes one per voice); names are tried first, then the average pitch.
+// (sometimes one per voice); names are tried first, then the average pitch: the higher half of
+// the tracks is the right hand. A single track is split per note at middle C by the caller.
 export function classifyHands(tracks: MidiTrack[], log: (line: string) => void): Map<number, Hand> {
   const hands = new Map<number, Hand>();
   const meanPitch = (t: MidiTrack) => t.notes.reduce((s, n) => s + n.pitch, 0) / t.notes.length;
   for (const t of tracks) {
-    log(`track ${t.index} "${t.name}": ${t.notes.length} notes, mean pitch ${meanPitch(t).toFixed(1)}`);
+    const pitches = t.notes.map((n) => n.pitch);
+    log(`track ${t.index} "${t.name}": ${t.notes.length} notes, pitch ${Math.min(...pitches)}-${Math.max(...pitches)}, mean ${meanPitch(t).toFixed(1)}`);
   }
   if (tracks.length === 1) {
     log(`only one note track: splitting hands at middle C`);

@@ -1,0 +1,13 @@
+{
+  "comment": [
+    "pickup: the piece opens with a half-bar anacrusis (\\partial 2). Bars count from the first full bar, so the score's 'Agitato' starts at bar 14 and 'Tempo primo' at bar 43.",
+    "tempoMap: the MIDI plays the ppp ending in strict time; a ritardando over bars 59-60 and the fermata on the last chord.",
+    "Easy keeps tempo factor 1.0: after thinning the Agitato (bars 14-42) charts 1.6 notes/s, one note every 625 ms on beats 1 and 3, sparser than the Lento's eighths (2.0 notes/s)."
+  ],
+  "pickup": "1/2",
+  "tempoMap": [
+    { "bar": 59, "ratio": 1 },
+    { "bar": 61, "ratio": 0.8, "ramp": true },
+    { "bar": 61, "ratio": 0.6 }
+  ]
+}

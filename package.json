@@ -13,6 +13,7 @@
     "test": "node --test \"tests/unit/*.test.ts\"",
     "test:e2e": "vite build && playwright test",
     "piece:add": "node tools/piece-add.ts",
+    "pieces:build": "node tools/pieces-build.ts",
     "samples:fetch": "node tools/fetch-samples.ts"
   },
   "dependencies": {
