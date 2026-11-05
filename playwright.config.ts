@@ -1,4 +1,4 @@
-import { defineConfig } from "@playwright/test";
+import { defineConfig, devices } from "@playwright/test";
 
 // Runs against the frozen production build (`vite preview` of dist/), never the HMR dev server.
 export default defineConfig({
@@ -10,6 +10,10 @@ export default defineConfig({
     browserName: "chromium",
     launchOptions: { args: ["--autoplay-policy=no-user-gesture-required"] },
   },
+  projects: [
+    { name: "desktop", testMatch: "smoke.spec.ts" },
+    { name: "phone", testMatch: "phone.spec.ts", use: { ...devices["Pixel 7"] } },
+  ],
   webServer: {
     command: "npx vite preview --host 127.0.0.1 --port 4179 --strictPort",
     url: "http://127.0.0.1:4179",
