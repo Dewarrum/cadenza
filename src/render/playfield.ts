@@ -35,7 +35,7 @@ const JUDGEMENT_STYLE: Record<Judgement, { label: string; color: string }> = {
   perfect: { label: "Perfect", color: "#e2bc6a" },
   great: { label: "Great", color: "#8fb3c6" },
   good: { label: "Good", color: "#b8b2a6" },
-  miss: { label: "Miss", color: "#c27262" },
+  miss: { label: "Miss", color: "#c97b6a" },
 };
 
 const SERIF = '"Bodoni Moda", Didot, Georgia, serif';
