@@ -1,7 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { playPerfect } from "./bot.ts";
 
-test("a rebound lane key plays, a taken key is refused, and the best result shows on the list", async ({ page }) => {
+declare const window: Window & { __cadenza: { settings: { approachMs: number | null } } };
+
+test("a rebound lane key plays, a taken key is refused, the best result shows on the list, then settings change and clear it", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/?clock=manual");
@@ -24,6 +26,15 @@ test("a rebound lane key plays, a taken key is refused, and the best result show
 
   await page.locator("#back").click();
   await expect(page.locator(".piece", { hasText: "Nocturne" }).locator('button[data-tier="easy"] .best')).toHaveText("S · FC");
+
+  // One approach time for all tiers starts from the one in effect (Easy, just played: 1.5 s).
+  await page.locator("#open-settings").click();
+  await page.locator("label:has(#approach-all)").click();
+  expect(await page.evaluate(() => window.__cadenza.settings.approachMs)).toBe(1500);
+  // Clearing results asks in the app first.
+  await page.locator("#clear-results").click();
+  await page.locator("#confirm button[value=clear]").click();
+  await expect(page.locator("#settings-note")).toHaveText("All results cleared.");
   await page.reload();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("cadenza.settings.v1")!).keys)).toEqual(["KeyS", "KeyF", "KeyJ", "KeyK"]);
   expect(errors).toEqual([]);
