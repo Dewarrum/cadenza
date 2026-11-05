@@ -3,10 +3,55 @@
 A browser piano rhythm game: classical pieces, falling notes over four piano-key lanes, real
 piano sound from the note data. See [DESIGN.md](DESIGN.md) for the product decisions.
 
-Status: slice S5. Two pieces (Chopin, Nocturne Op. 9 No. 2; Rachmaninoff, Prelude Op. 3 No. 2) on
-Easy, Normal and Hard, touch and desktop keys, portrait phone layout, pause and resume, how-to
-card, settings with audio offset calibration, best results, installable PWA that plays offline,
-and the visual design (see Look).
+Status: v1.0.0, all six slices of DESIGN.md. Two pieces (Chopin, Nocturne Op. 9 No. 2;
+Rachmaninoff, Prelude Op. 3 No. 2) on Easy, Normal and Hard, touch and desktop keys, portrait
+phone layout, pause and resume, how-to card, settings with audio offset calibration, best
+results, installable PWA that plays offline, the visual design (see Look) and an About screen
+with the credits (see Licenses).
+
+## Play
+
+**https://cadenza-33t.pages.dev** (the Cloudflare Pages project `cadenza`; `cadenza.pages.dev`
+was taken, so Pages added the suffix).
+
+Install it on a phone to get a full-screen portrait app. It plays offline once the piano has
+loaded in full: the piece list then says "Piano ready · works offline".
+
+- **iPhone or iPad** (iOS 16.4 or later): open the URL in Safari, tap Share, then **Add to Home
+  Screen**, then Add. If you hear nothing, check the mute switch: it silences web audio.
+- **Android**: open the URL in Chrome, tap ⋮, then **Add to Home screen** (or **Install app**),
+  then Install. In Samsung Internet: ☰, then **Add page to**, then **Home screen**.
+
+## Deploy
+
+A static site (`dist/`) on the Cloudflare Pages project `cadenza`, production branch `main`.
+`public/_headers` (Vite copies it to `dist/`) has `index.html`, the web manifest and `sw.js`
+revalidated on every load, serves `/assets/*` and `/samples/*` as immutable for a year, and
+adds nosniff, a referrer policy and a permissions policy without camera or microphone.
+
+- **On push to `main`**, `.github/workflows/deploy.yml` builds and runs
+  `wrangler pages deploy dist --project-name cadenza --branch main` with the repository secret
+  `CLOUDFLARE_API_TOKEN` and the repository variable `CLOUDFLARE_ACCOUNT_ID` (set). Until the
+  secret exists, its `pages-token` job skips the deploy with a notice and the run stays green.
+- **From the laptop**, where `wrangler` is logged in:
+
+  ```sh
+  npm run build
+  npx --yes wrangler@4 pages deploy dist --project-name cadenza --branch main
+  ```
+
+**Manual step left for the owner:** add the repository secret `CLOUDFLARE_API_TOKEN`
+(GitHub → Dewarrum/cadenza → Settings → Secrets and variables → Actions → New repository
+secret, or `gh secret set CLOUDFLARE_API_TOKEN -R Dewarrum/cadenza`), a Cloudflare API token
+from the "Edit Cloudflare Workers" template, which includes Pages. From then on every push to
+`main` deploys.
+
+`.github/workflows/ci.yml` runs on every push and pull request: `npm ci`, the unit tests, the
+build, and both e2e projects in Chromium.
+
+The project was created with `wrangler pages project create cadenza --production-branch main
+--force`: wrangler 4.158 otherwise hands `pages project create` to Workers and fails without an
+entry point.
 
 ## Run
 
@@ -112,8 +157,10 @@ Workbox service worker (vite-plugin-pwa, configured in `vite.config.ts`):
 
 Bumping caches: the precache is revisioned by the build, so app code and piece changes reach
 players with the next deploy without any manual step. When the sample files change, bump
-`SAMPLES_CACHE` (e.g. `cadenza-samples-v2`); the page deletes older `cadenza-samples-*` caches
-on start. The dev server has no service worker and does not cache samples.
+`SAMPLES_CACHE` (e.g. `cadenza-samples-v2`) and give the files new names (e.g. a
+`public/samples/v2/` directory): Pages serves `/samples/*` as immutable for a year, so browsers
+keep a changed file under an old name. The page deletes older `cadenza-samples-*` caches on
+start. The dev server has no service worker and does not cache samples.
 
 Icons in `public/icons/` are drawn by `npm run icons`, see Look.
 
@@ -166,7 +213,14 @@ reloads and plays the Prelude on Normal. `phone` (Pixel 7 viewport, touch) check
 canvas fills the phone at device resolution, plays the Nocturne on Normal with fingers sent as
 CDP touch points, presses its first chord with two fingers, pauses and resumes mid-piece and
 checks nothing is judged twice. Both use Playwright's Chromium (`npx playwright install
-chromium` if it is missing).
+chromium` if it is missing). The settings run also opens About and checks it names both music
+licenses.
+
+`BASE_URL` points the e2e at a deployed site instead of a local build:
+
+```sh
+BASE_URL=https://cadenza-33t.pages.dev npx playwright test --project desktop
+```
 
 ## Add a piece
 
@@ -257,14 +311,19 @@ tails. It skips files that exist; `-- --force` re-encodes all. Needs ffmpeg and 
 
 ## Licenses
 
-- Code: MIT, see [LICENSE](LICENSE).
+The About screen (on the title screen and the piece list) gives the same credits, the music ones
+from each piece file's source facts.
+
+- Code: MIT, copyright 2026 Yura Tsai, see [LICENSE](LICENSE).
 - Music: the MIDI files in `sources/` come from the [Mutopia Project](https://www.mutopiaproject.org).
   Chopin, Nocturne Op. 9 No. 2, engraved by Renato Biolcati Rinaldi, is licensed
   [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/); Rachmaninoff, Prelude Op. 3
   No. 2, engraved by Petro Kostandy, is licensed
   [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Charts, piece files and
-  overrides derived from them (`pieces/`) are under the same licenses.
+  overrides derived from them (`pieces/`) are under the same licenses; see
+  [pieces/LICENSE.md](pieces/LICENSE.md) for the terms, the changes made and the attribution
+  lines.
 - Fonts: Bodoni Moda and Hanken Grotesk, SIL Open Font License 1.1 (see Look).
 - Piano samples: Splendid Grand Piano, public-domain Steinway samples released by Akai, SFZ
-  edition by [sfzinstruments](https://github.com/sfzinstruments/SplendidGrandPiano), encoded
-  for [smplr](https://github.com/danigb/smplr) (MIT).
+  edition by [sfzinstruments](https://github.com/sfzinstruments/SplendidGrandPiano), played
+  with [smplr](https://github.com/danigb/smplr) (MIT).
