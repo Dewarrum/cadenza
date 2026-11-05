@@ -1,42 +1,36 @@
-// Writes the placeholder app icons to public/icons/ (PNG, drawn here, no image tools needed):
-// four ivory keys under a gold judgement line with notes falling in, on the dark background.
-// S5 restyles them. Usage: npm run icons
+// Writes the app icons to public/icons/ (PNG, drawn here, no image tools needed): the gilt
+// fermata of the title screen (the <symbol id="fermata"> in index.html, same geometry) on
+// lacquer under a warm light. Usage: npm run icons
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { deflateSync } from "node:zlib";
 
-type RGBA = [number, number, number, number];
-type Shape = { x0: number; y0: number; x1: number; y1: number; r?: number; color: RGBA };
+type RGB = [number, number, number];
 
-const hex = (h: string, a = 1): RGBA => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16), a];
-const BG = hex("#0b0908");
-const IVORY = hex("#f3ead8");
-const KEY = hex("#efe6d2");
-const LIT = hex("#ffd98a");
-const GOLD = hex("#d9b25f");
-const TAIL = hex("#f3ead8", 0.35);
+const hex = (h: string): RGB => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+const LACQUER = hex("#0e0b09");
+const LAMP = hex("#6b4220");
+const GILT = hex("#d3aa5c");
 
-// Artwork in unit coordinates, inside 0.14-0.86 so that it also fits a maskable safe zone when
-// scaled down.
-const lane = (i: number) => 0.14 + i * 0.18;
-const SHAPES: Shape[] = [
-  { x0: lane(0) + 0.07, y0: 0.2, x1: lane(0) + 0.11, y1: 0.5, color: TAIL },
-  { x0: lane(0) + 0.02, y0: 0.47, x1: lane(0) + 0.16, y1: 0.52, r: 0.015, color: IVORY },
-  { x0: lane(2) + 0.02, y0: 0.32, x1: lane(2) + 0.16, y1: 0.37, r: 0.015, color: IVORY },
-  { x0: lane(3) + 0.02, y0: 0.16, x1: lane(3) + 0.16, y1: 0.21, r: 0.015, color: IVORY },
-  { x0: 0.14, y0: 0.6, x1: 0.86, y1: 0.615, color: GOLD },
-  ...[0, 1, 2, 3].map((i): Shape => ({ x0: lane(i) + 0.005, y0: 0.63, x1: lane(i) + 0.175, y1: 0.84, r: 0.01, color: i === 1 ? LIT : KEY })),
-];
-
-function inside(s: Shape, x: number, y: number): boolean {
-  if (x < s.x0 || x > s.x1 || y < s.y0 || y > s.y1) return false;
-  const r = s.r ?? 0;
-  const dx = Math.max(s.x0 + r - x, 0, x - (s.x1 - r));
-  const dy = Math.max(s.y0 + r - y, 0, y - (s.y1 - r));
-  return dx * dx + dy * dy <= r * r;
+// The fermata in its 64 x 36 symbol units: a crescent between two half-ellipses on the
+// baseline, thick at the top and thin at the ends, and a dot under it.
+function inFermata(gx: number, gy: number): boolean {
+  if (Math.hypot(gx - 32, gy - 28.6) <= 4.6) return true;
+  if (gy > 33.8) return false;
+  const outer = ((gx - 32) / 30.5) ** 2 + ((gy - 33.5) / 30.5) ** 2 <= 1;
+  const inner = ((gx - 32) / 28.9) ** 2 + ((gy - 33.8) / 21.6) ** 2 < 1;
+  return outer && !inner;
 }
 
-// RGBA pixels, 4x4 supersampled; `scale` shrinks the artwork about the centre (maskable).
+// The glyph is 0.62 of the icon wide, centred; `scale` shrinks it about the centre (maskable
+// icons keep it inside the safe zone).
+const GLYPH = 0.62;
+function inside(u: number, v: number, scale: number): boolean {
+  const s = (GLYPH * scale) / 64;
+  return inFermata((u - 0.5) / s + 32, (v - 0.5) / s + 18.7);
+}
+
+// RGBA pixels, 4x4 supersampled.
 function render(size: number, scale: number): Buffer {
   const px = Buffer.alloc(size * size * 4);
   const N = 4;
@@ -47,12 +41,11 @@ function render(size: number, scale: number): Buffer {
         for (let sx = 0; sx < N; sx++) {
           const u = (pxl + (sx + 0.5) / N) / size;
           const v = (py + (sy + 0.5) / N) / size;
-          // Warm glow around the keys, like the play screen.
-          const glow = Math.max(0, 1 - Math.hypot(u - 0.5, v - 0.66) / 0.6) * 0.3;
-          let c = [BG[0] + (120 - BG[0]) * glow, BG[1] + (70 - BG[1]) * glow, BG[2] + (30 - BG[2]) * glow];
-          const x = (u - 0.5) / scale + 0.5;
-          const y = (v - 0.5) / scale + 0.5;
-          for (const s of SHAPES) if (inside(s, x, y)) c = c.map((ch, k) => ch + (s.color[k] - ch) * s.color[3]);
+          // Warm light under the mark, darker towards the corners.
+          const lamp = Math.max(0, 1 - Math.hypot(u - 0.5, (v - 0.6) * 1.2) / 0.62) ** 1.6 * 0.55;
+          const edge = Math.min(1, Math.hypot(u - 0.5, v - 0.5) / 0.75) ** 3 * 0.5;
+          let c = LACQUER.map((ch, k) => (ch + (LAMP[k] - ch) * lamp) * (1 - edge));
+          if (inside(u, v, scale)) c = [...GILT];
           c.forEach((ch, k) => (acc[k] += ch));
         }
       }
