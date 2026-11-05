@@ -3,9 +3,9 @@
 A browser piano rhythm game: classical pieces, falling notes over four piano-key lanes, real
 piano sound from the note data. See [DESIGN.md](DESIGN.md) for the product decisions.
 
-Status: slice S3. Two pieces (Chopin, Nocturne Op. 9 No. 2; Rachmaninoff, Prelude Op. 3 No. 2) on
+Status: slice S4. Two pieces (Chopin, Nocturne Op. 9 No. 2; Rachmaninoff, Prelude Op. 3 No. 2) on
 Easy, Normal and Hard, touch and desktop keys, portrait phone layout, pause and resume, how-to
-card. No settings yet.
+card, settings with audio offset calibration, best results, installable PWA that plays offline.
 
 ## Run
 
@@ -16,7 +16,7 @@ npm run dev        # http://127.0.0.1:5184
 
 Tap or click the title screen (this unlocks audio), wait for the piano to load, pick a tier. Tap
 anywhere in a lane, top to bottom; one finger per lane, so chords take several fingers. On a
-keyboard **D F J K** are the four lanes and on Easy **Space** hits whichever lane has the next
+keyboard **D F J K** are the four lanes (rebind them in Settings) and on Easy **Space** hits whichever lane has the next
 note. Hold the finger or key down for notes with a tail.
 
 **Esc** or the pause button (top right) pauses; so do switching apps, locking the phone, a call
@@ -42,21 +42,95 @@ screen shows "If you hear nothing, check the mute switch".
 
 `npm run build` writes the static site to `dist/`; `npm run preview` serves it.
 
-URL switches for testing: `?keysound=off` plays the whole piece by itself (hits only score);
-`?clock=manual` hands the song clock to `window.__cadenza.advance(ms)` (used by the e2e bot).
+URL switches for testing: `?keysound=off` plays the whole piece by itself (hits only score),
+whatever the Key sound setting says; `?clock=manual` hands the song clock to
+`window.__cadenza.advance(ms)` (used by the e2e bot).
+
+## Settings
+
+**Settings** on the piece list or in the pause overlay. Every change is saved at once in
+localStorage under `cadenza.settings.v1` (one JSON object; a missing or broken value falls back
+to its default, unknown fields are dropped):
+
+- **Audio offset**: see Calibration below. The − / + buttons step it by 5 ms (±400 ms around the
+  device latency).
+- **Approach time**: how long a note takes to fall to the line. Defaults Easy 1.5 s, Normal and
+  Hard 1.2 s; moving the slider (0.8-2.5 s) sets one time for every tier, "Reset to defaults"
+  goes back to the per-tier times.
+- **Volume**: master volume, applies at once, also to a paused piece.
+- **Key sound**: off = the whole piece plays by itself and hits only score. From the next play.
+- **Keys**: click a lane, press a key. A key already on another lane is refused, and so are Space
+  (any lane on Easy), Esc (pause), Enter, Tab and the modifier keys. Defaults D F J K.
+- **Show how-to card again**, **Clear all results** (asks first).
+
+Best results live under `cadenza.results.v1`: per piece and tier the best accuracy, its grade
+and date, whether any run was a full combo, the max combo and the play count. The piece list
+shows the best grade on each tier button (`· FC` for a full combo); the results screen says
+"New best" (with the previous best) or shows the best to beat.
+
+## Calibration
+
+Settings → **Calibrate** → tap the pad (or press a key) to start. Four clicks count in, then
+sixteen clicks at 100 bpm; tap the pad, or press any key, on each click. The clicks go through
+the same Web Audio output path as the piano, and each tap's time is its event timestamp mapped
+onto the audio clock, as during play. The result is the median of the tap delays after
+dropping strays (more than three robust standard deviations, at least 30 ms, from the median;
+at least 8 taps must remain). Apply, Retry or Cancel. Leaving the app, locking the phone or the
+audio context stopping ends a run at once and measures nothing.
+
+Sign convention: **a positive offset means your taps land late (after the sound), and the
+judge subtracts the offset from every tap**, so with +40 ms a tap 40 ms after a note's time is
+Perfect. The offset moves the judgement windows only; notes are drawn where they always are.
+
+The game clock already compensates the output latency the browser reports
+(`AudioContext.outputLatency`, or `baseLatency`), so the offset shown in the settings is that
+reported latency (the starting value before any calibration) plus what calibration or the
+stepper measured on top of it. Only the measured part is stored (`audioOffsetMs`, `null` until
+calibrated), so a device that reports a different latency later (other headphones) keeps the
+right total.
+
+## Offline and updates (PWA)
+
+`npm run build` also writes a web manifest (Cadenza, portrait, standalone, dark theme) and a
+Workbox service worker (vite-plugin-pwa, configured in `vite.config.ts`):
+
+- The app shell and both piece files are precached. Piece files are separate assets (the
+  `virtual:pieces` catalogue in `vite.config.ts` carries only titles and levels), fetched when a
+  tier is picked.
+- Piano samples are cached at runtime, cache-first, for a year, in the Cache Storage cache
+  `SAMPLES_CACHE` (`src/audio/samples.ts`); only the format the browser plays is stored. The
+  piano loader writes that cache itself as well, so one complete load is enough to play offline
+  even on a first visit, before the service worker controls the page. The piece list says
+  "Piano ready · works offline" once the full set is cached.
+- A new version waits until the app is next launched. When one turns up while the app is open
+  (checked at load and whenever the app returns to the foreground), an "Update available ·
+  Reload" toast offers to switch now. The toast never shows over the play screen.
+
+Bumping caches: the precache is revisioned by the build, so app code and piece changes reach
+players with the next deploy without any manual step. When the sample files change, bump
+`SAMPLES_CACHE` (e.g. `cadenza-samples-v2`); the page deletes older `cadenza-samples-*` caches
+on start. The dev server has no service worker and does not cache samples.
+
+Icons in `public/icons/` are placeholders drawn by `npm run icons` (`tools/make-icons.ts`);
+S5 restyles them.
 
 ## Test
 
 ```sh
 npm test           # unit tests (node --test): judge, score, lanes, tier rules, overrides, resume
-                   # point, and that regenerating the pieces is deterministic and matches pieces/
+                   # point, calibration maths, settings parsing, best-result merge, and that
+                   # regenerating the pieces is deterministic and matches pieces/
 npm run test:e2e   # builds, serves dist/ with vite preview, then bots play against the built site
 ```
 
 The e2e run has two projects against the built site: `desktop` plays the Nocturne on Easy with
 keys and timing error, and the Rachmaninoff on Hard with a perfect bot (every note must be
 Perfect, which proves the chart is hittable: chords, holds next to other lanes' notes, lanes
-never struck closer than the judge can separate); `phone` (Pixel 7 viewport, touch) checks the
+never struck closer than the judge can separate); rebinds lane 1 to S in the settings (F is
+refused, it is lane 2's), plays a perfect Easy run with S and checks the new best on the
+results screen and the piece list; and loads the app once, goes offline
+(`context.setOffline`, which also cuts the service worker off: an uncached sample fails),
+reloads and plays the Prelude on Normal. `phone` (Pixel 7 viewport, touch) checks the
 canvas fills the phone at device resolution, plays the Nocturne on Normal with fingers sent as
 CDP touch points, presses its first chord with two fingers, pauses and resumes mid-piece and
 checks nothing is judged twice. Both use Playwright's Chromium (`npx playwright install
@@ -142,9 +216,12 @@ Bars count from the first full bar (the pickup is bar 0), beats from 1, fraction
 
 ## Piano samples
 
-`public/samples/` holds a subset of smplr's SplendidGrandPiano: two velocity layers (PP, MF),
-29 roots about every third semitone, opus (`.ogg`) and AAC (`.m4a`, used on Safari).
-`npm run samples:fetch` downloads them again (`-- --force` to overwrite).
+`public/samples/` holds a subset of SplendidGrandPiano as smplr maps it: two velocity layers
+(PP, MF), 29 roots about every third semitone, opus (`.ogg`, 3.94 MB) and AAC (`.m4a`, used on
+Safari, 4.05 MB). `npm run samples:fetch` rebuilds them from the lossless FLAC masters
+(sfzinstruments repository, pinned commit, cached in the OS temp dir): opus at 80 kbps VBR
+through ffmpeg/libopus, AAC at 80 kbps constrained VBR through macOS `afconvert`, full-length
+tails. It skips files that exist; `-- --force` re-encodes all. Needs ffmpeg and macOS.
 
 ## Licenses
 
