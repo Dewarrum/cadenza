@@ -18,6 +18,7 @@ test("a bot plays the Nocturne on Easy and reaches the results screen", async ({
   const easy = page.locator('button[data-tier="easy"]');
   await expect(easy).toBeEnabled({ timeout: 60_000 }); // enabled once the piano samples are decoded
   await easy.click();
+  await page.locator("#howto").click(); // first play shows the how-to card once
 
   const notes = await page.evaluate(() => window.__cadenza.chart());
   const end = await page.evaluate(() => window.__cadenza.end());

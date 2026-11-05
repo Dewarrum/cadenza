@@ -4,7 +4,7 @@
   --ivory: #f3ead8;
   --muted: #a99f8f;
   --gold: #d9b25f;
-  --column: min(100vw, calc(100dvh * 9 / 19.5));
+  --header: 52px; /* HEADER_PX in render/playfield.ts */
 }
 
 * { box-sizing: border-box; }
@@ -16,13 +16,23 @@ html, body {
   color: var(--ivory);
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
+/* A phone fills the visible viewport; wider screens get a phone-shaped column. */
 #app {
-  width: var(--column);
+  width: 100vw;
   height: 100dvh;
   margin: 0 auto;
   background: radial-gradient(ellipse at 50% 70%, rgba(120, 70, 30, 0.22), transparent 70%), var(--bg);
+}
+
+@media (min-aspect-ratio: 2/3) {
+  #app { width: calc(100dvh * 9 / 19.5); }
 }
 
 .screen {
@@ -32,13 +42,22 @@ html, body {
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  padding: 1.5rem;
+  padding: max(1.5rem, env(safe-area-inset-top)) max(1.5rem, env(safe-area-inset-right))
+    max(1.5rem, env(safe-area-inset-bottom)) max(1.5rem, env(safe-area-inset-left));
+  overflow-y: auto;
   text-align: center;
 }
 
 .screen[hidden] { display: none; }
 
-#play { padding: 0; }
+#play {
+  position: relative;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  overflow: hidden;
+  touch-action: none;
+}
+
+#field { display: block; width: 100%; height: 100%; touch-action: none; }
 
 h1, h2, .grade {
   font-family: Georgia, "Times New Roman", serif;
@@ -50,8 +69,10 @@ h1 { font-size: 3rem; letter-spacing: 0.04em; color: var(--gold); }
 h2 { font-size: 1.8rem; }
 
 .hint { color: var(--muted); font-size: 0.9rem; margin: 0; }
+.hint.small { font-size: 0.75rem; }
+.hint[hidden] { display: none; }
 
-#title { cursor: pointer; }
+#title, #howto { cursor: pointer; }
 
 #pieces { list-style: none; padding: 0; margin: 0; width: 100%; }
 
@@ -64,6 +85,7 @@ h2 { font-size: 1.8rem; }
 .piece .composer { color: var(--muted); font-size: 0.85rem; }
 .piece .name { font-family: Georgia, serif; font-size: 1.2rem; margin: 0.2rem 0 0.8rem; }
 .tiers { display: flex; gap: 0.5rem; justify-content: center; }
+.tiers button { flex: 1; }
 
 button {
   font: inherit;
@@ -71,8 +93,10 @@ button {
   background: var(--ivory);
   border: none;
   border-radius: 0.4rem;
-  padding: 0.5rem 0.9rem;
+  min-height: 3rem;
+  padding: 0.6rem 1rem;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 button:disabled { opacity: 0.35; cursor: default; }
@@ -81,6 +105,55 @@ button small { display: block; font-size: 0.7rem; opacity: 0.7; }
 .progress { width: 60%; height: 3px; background: rgba(243, 234, 216, 0.12); }
 .progress[hidden] { display: none; }
 #progress-bar { height: 100%; width: 0; background: var(--gold); transition: width 0.2s; }
+
+.sketch { width: min(9rem, 40%); }
+.sketch text { fill: var(--muted); font: 7px Georgia, serif; text-anchor: middle; }
+.rules { list-style: none; padding: 0; margin: 0; line-height: 1.6; }
+.rules b { color: var(--gold); font-weight: normal; }
+
+/* Pause button sits in the header band of the canvas, top right. */
+.pause {
+  position: absolute;
+  top: env(safe-area-inset-top);
+  right: env(safe-area-inset-right);
+  width: var(--header);
+  height: var(--header);
+  min-height: 0;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: var(--muted);
+  fill: currentColor;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  background: rgba(11, 9, 8, 0.88);
+}
+
+.overlay[hidden] { display: none; }
+.overlay button, #back { width: min(16rem, 100%); }
+
+/* Landscape on a phone is out of scope: main.ts shows this over everything and pauses. */
+.rotate {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  color: var(--muted);
+}
+
+.rotate[hidden] { display: none; }
 
 .grade { font-size: 6rem; color: var(--gold); line-height: 1; }
 .accuracy { font-size: 1.6rem; margin: 0; }

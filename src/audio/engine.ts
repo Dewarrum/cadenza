@@ -2,13 +2,13 @@
 // listener currently hears, notes are scheduled ahead on the context timeline, and taps are
 // converted from event timestamps onto the same timeline.
 import type { AutoNote, Chart, PlayNote } from "../game/chart.ts";
+import type { Run } from "../game/timeline.ts";
 import { loadPiano, type Piano } from "./piano.ts";
 
 const LOOKAHEAD_MS = 200;
+const STALE_MS = 100; // a note this late when the timer gets to it is dropped, not played in a burst
 const SCHEDULER_INTERVAL_MS = 25;
 const HOLD_RELEASE_S = 0.15; // damper when a hold is let go early
-const COUNT_IN_BEATS = 4;
-const LEAD_IN_MS = 600; // silence before the first count-in click
 
 // Song clock in ms. now() is what the player hears; fromEvent() maps an event timestamp
 // (performance.now() timebase); toAudio() maps song time onto the AudioContext timeline.
@@ -71,17 +71,30 @@ export class AudioEngine {
   private clock: Clock | null = null;
   private auto: AutoNote[] = [];
   private cursor = 0;
+  private clicks: OscillatorNode[] = [];
   keySound = true;
 
   // Must run inside a user gesture so browsers allow audio.
   constructor() {
+    // iOS 17+: the "playback" session plays through the mute switch (16.4 keeps the hint).
+    const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+    if (session) session.type = "playback";
     this.ctx = new AudioContext({ latencyHint: "interactive" });
-    void this.ctx.resume();
+    void this.unlock();
     const compressor = this.ctx.createDynamicsCompressor();
     compressor.connect(this.ctx.destination);
     this.out = this.ctx.createGain();
     this.out.gain.value = 2; // smplr maps velocity to gain quadratically, so p passages are quiet; the compressor catches peaks
     this.out.connect(compressor);
+  }
+
+  // Call inside a user gesture: resumes the context, and the silent buffer unlocks iOS Safari.
+  unlock(): Promise<void> {
+    const silence = this.ctx.createBufferSource();
+    silence.buffer = this.ctx.createBuffer(1, 1, this.ctx.sampleRate);
+    silence.connect(this.ctx.destination);
+    silence.start();
+    return this.ctx.resume();
   }
 
   get pianoReady(): boolean {
@@ -93,24 +106,28 @@ export class AudioEngine {
     return this.loading;
   }
 
-  // Starts a song with the count-in; returns the clock. Song time 0 is the first note.
-  start(chart: Chart, manualClock: boolean): Clock {
+  // Runs the song clock from `run.start` with its count-in; returns the clock. Song time 0 is
+  // the first note. Used for the start and for every resume.
+  start(chart: Chart, run: Run, manualClock: boolean): Clock {
     this.stop();
-    const firstClick = chart.bars[0] - COUNT_IN_BEATS * chart.beatMs;
-    const startAt = Math.min(firstClick, -1500) - LEAD_IN_MS;
-    const clock = manualClock ? new ManualClock(this.ctx, startAt) : new AudioClock(this.ctx, startAt);
+    const clock = manualClock ? new ManualClock(this.ctx, run.start) : new AudioClock(this.ctx, run.start);
     this.clock = clock;
-    for (let i = 0; i < COUNT_IN_BEATS; i++) this.click(clock.toAudio(firstClick + i * chart.beatMs), i === 0);
+    run.clicks.forEach((t, i) => this.click(clock.toAudio(t), i === 0));
     this.auto = chart.auto;
-    this.cursor = 0;
+    const from = chart.auto.findIndex((n) => n.time >= run.soundFrom);
+    this.cursor = from < 0 ? chart.auto.length : from;
     this.timer = window.setInterval(() => this.schedule(), SCHEDULER_INTERVAL_MS);
     this.schedule();
     return clock;
   }
 
+  // Silences everything this run scheduled: queued and sounding notes and count-in clicks.
   stop(): void {
     clearInterval(this.timer);
+    this.piano?.scheduler.stop();
     this.piano?.stop();
+    for (const click of this.clicks) click.disconnect();
+    this.clicks = [];
     this.clock = null;
   }
 
@@ -136,9 +153,10 @@ export class AudioEngine {
 
   private schedule(): void {
     if (!this.piano || !this.clock) return;
-    const horizon = this.clock.now() + LOOKAHEAD_MS;
-    while (this.cursor < this.auto.length && this.auto[this.cursor].time <= horizon) {
+    const now = this.clock.now();
+    while (this.cursor < this.auto.length && this.auto[this.cursor].time <= now + LOOKAHEAD_MS) {
       const n = this.auto[this.cursor++];
+      if (n.time < now - STALE_MS) continue;
       const time = Math.max(this.clock.toAudio(n.time), this.ctx.currentTime);
       this.piano.start({ note: n.pitch, velocity: n.velocity, time, duration: n.duration / 1000 });
     }
@@ -154,5 +172,6 @@ export class AudioEngine {
     osc.connect(env).connect(this.out);
     osc.start(time);
     osc.stop(time + 0.08);
+    this.clicks.push(osc);
   }
 }

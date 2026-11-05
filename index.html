@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#0b0908" />
     <title>Cadenza</title>
     <link rel="stylesheet" href="/src/style.css" />
@@ -11,18 +11,57 @@
     <main id="app">
       <section id="title" class="screen">
         <h1>Cadenza</h1>
-        <p class="hint">Click or press any key to begin</p>
+        <p class="hint">Tap or press any key to begin</p>
+        <p class="hint small ios-only" hidden>If you hear nothing, check the mute switch</p>
       </section>
 
       <section id="list" class="screen" hidden>
         <h2>Pieces</h2>
+        <p class="hint small ios-only" hidden>If you hear nothing, check the mute switch</p>
         <div class="progress" aria-label="Loading piano"><div id="progress-bar"></div></div>
         <ul id="pieces"></ul>
-        <p class="hint">Keys D F J K · Space hits any lane on Easy</p>
+        <p class="hint">Tap the lanes, or keys D F J K · Space hits any lane on Easy · Esc pauses</p>
+      </section>
+
+      <section id="howto" class="screen" hidden>
+        <h2>How to play</h2>
+        <svg class="sketch" viewBox="0 0 120 150" aria-hidden="true">
+          <rect x="30" width="30" height="120" fill="rgba(255,240,220,0.05)" />
+          <rect x="90" width="30" height="120" fill="rgba(255,240,220,0.05)" />
+          <text x="45" y="12">hold</text>
+          <rect x="42" y="18" width="6" height="66" fill="rgba(243,234,216,0.35)" />
+          <rect x="33" y="81" width="24" height="6" rx="2" fill="#f3ead8" />
+          <text x="90" y="34">chord</text>
+          <rect x="63" y="40" width="24" height="6" rx="2" fill="#f3ead8" />
+          <rect x="93" y="40" width="24" height="6" rx="2" fill="#f3ead8" />
+          <text x="15" y="98">tap</text>
+          <rect x="3" y="104" width="24" height="6" rx="2" fill="#f3ead8" />
+          <rect y="119" width="120" height="2" fill="#d9b25f" />
+          <rect x="1" y="122" width="28" height="28" fill="#ffd98a" />
+          <rect x="31" y="122" width="28" height="28" fill="#efe6d2" />
+          <rect x="61" y="122" width="28" height="28" fill="#efe6d2" />
+          <rect x="91" y="122" width="28" height="28" fill="#efe6d2" />
+        </svg>
+        <ul class="rules">
+          <li><b>Tap</b> a lane as its note reaches the gold line.</li>
+          <li><b>Hold</b> long notes until the tail has passed.</li>
+          <li><b>Chords</b>: notes side by side, one finger each.</li>
+        </ul>
+        <p class="hint">Keys D F J K · Esc pauses</p>
+        <p class="hint">Tap to start</p>
       </section>
 
       <section id="play" class="screen" hidden>
         <canvas id="field"></canvas>
+        <button id="pause" class="pause" type="button" aria-label="Pause">
+          <svg viewBox="0 0 10 12" width="12" height="14" aria-hidden="true"><rect x="1" width="3" height="12" /><rect x="6" width="3" height="12" /></svg>
+        </button>
+        <div id="paused" class="overlay" hidden>
+          <h2>Paused</h2>
+          <button id="resume" type="button">Resume</button>
+          <button id="restart" type="button">Restart</button>
+          <button id="quit" type="button">Quit to list</button>
+        </div>
       </section>
 
       <section id="results" class="screen" hidden>
@@ -34,6 +73,7 @@
         <button id="back" type="button">Back to pieces</button>
       </section>
     </main>
+    <div id="rotate" class="rotate" hidden><p>Rotate your phone to portrait</p></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

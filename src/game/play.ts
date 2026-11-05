@@ -70,6 +70,23 @@ export class Play {
     this.finish(hold.index, { judgement: hold.judgement, holdFraction: holdFraction(note.time, note.hold, time, this.offset) });
   }
 
+  // A pause lets go of every key. A hold kept down at that moment counts as held to its end:
+  // the pause ended it, not the player.
+  pause(): void {
+    for (const hold of this.holds.values()) this.finish(hold.index, { judgement: hold.judgement, holdFraction: 1 });
+    this.holds.clear();
+    this.pressed.fill(false);
+    this.last = null;
+  }
+
+  // After a resume that sounds from `from`: notes hit just before the pause whose sound was
+  // still scheduled ahead (and cut by the pause) sound again. Nothing else is re-sounded.
+  resume(from: number): void {
+    this.chart.notes.forEach((note, i) => {
+      if (note.time >= from && this.results[i] && this.results[i].judgement !== "miss") this.sound.hit(note);
+    });
+  }
+
   // Lanes that should light up: pressed keys plus lanes of holds kept by Space.
   litLanes(): boolean[] {
     const lit = [...this.pressed];

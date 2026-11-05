@@ -1,9 +1,11 @@
-// Canvas 2D play screen: a phone-shaped column with four lanes ending in piano keys.
-// Every position is computed from the song clock, so the picture follows the audio.
+// Canvas 2D play screen: four lanes ending in piano keys under a header band that holds the
+// count-in and the pause button. The canvas fills its CSS box (the phone screen, or the
+// phone-shaped column on wide screens) at device resolution. Every position is computed from
+// the song clock and the current size, so resizing mid-song keeps notes in place.
 import type { Judgement } from "../game/judge.ts";
 import type { Play } from "../game/play.ts";
 
-export const ASPECT = 9 / 19.5; // width / height of the play column
+export const HEADER_PX = 52; // matches the pause button band in style.css
 
 const COLORS = {
   bg: "#0b0908",
@@ -32,34 +34,39 @@ export class Playfield {
   private readonly g: CanvasRenderingContext2D;
   private w = 0;
   private h = 0;
+  private lastFrame: Parameters<Playfield["draw"]> | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     this.g = canvas.getContext("2d")!;
-    this.resize();
-    window.addEventListener("resize", () => this.resize());
+    // Orientation, toolbar and window changes; a paused picture is redrawn at the new size.
+    new ResizeObserver(() => {
+      this.resize();
+      if (this.lastFrame) this.draw(...this.lastFrame);
+    }).observe(canvas);
   }
 
   resize(): void {
-    const h = window.innerHeight;
-    const w = Math.min(window.innerWidth, Math.round(h * ASPECT));
+    const { clientWidth: w, clientHeight: h } = this.canvas;
+    if (!w || !h) return;
     const dpr = window.devicePixelRatio || 1;
     this.w = w;
     this.h = h;
-    this.canvas.style.width = `${w}px`;
-    this.canvas.style.height = `${h}px`;
     this.canvas.width = Math.round(w * dpr);
     this.canvas.height = Math.round(h * dpr);
     this.g.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  draw(play: Play, now: number, approachMs: number): void {
+  // `clicks` are the count-in beats of the current run.
+  draw(play: Play, now: number, approachMs: number, clicks: readonly number[]): void {
+    this.lastFrame = [play, now, approachMs, clicks];
     const { g, w, h } = this;
+    const top = HEADER_PX;
     const keysH = h * 0.16;
     const lineY = h - keysH;
     const laneW = w / 4;
     const noteH = Math.max(10, h * 0.022);
-    const y = (t: number) => lineY - ((t - now) / approachMs) * lineY;
+    const y = (t: number) => lineY - ((t - now) / approachMs) * (lineY - top);
 
     // Background with a warm vignette.
     g.fillStyle = COLORS.bg;
@@ -70,7 +77,13 @@ export class Playfield {
     g.fillStyle = glow;
     g.fillRect(0, 0, w, h);
     g.fillStyle = COLORS.lane;
-    for (let i = 1; i < 4; i += 2) g.fillRect(i * laneW, 0, laneW, lineY);
+    for (let i = 1; i < 4; i += 2) g.fillRect(i * laneW, top, laneW, lineY - top);
+
+    // Grid and notes come in below the header band.
+    g.save();
+    g.beginPath();
+    g.rect(0, top, w, h - top);
+    g.clip();
 
     // Bar-line grid, extended backwards through the count-in.
     const { bars, beats, beatMs } = play.chart;
@@ -79,7 +92,7 @@ export class Playfield {
       g.fillStyle = color;
       for (const t of times) {
         const ty = y(t);
-        if (ty > -2 && ty < lineY) g.fillRect(0, ty, w, 1);
+        if (ty > top && ty < lineY) g.fillRect(0, ty, w, 1);
       }
     }
 
@@ -88,22 +101,25 @@ export class Playfield {
     for (let i = notes.length - 1; i >= 0; i--) {
       const n = notes[i];
       const state = play.states[i];
-      const top = y(n.time + n.hold);
-      if (top > h || y(n.time) < -noteH) continue;
+      const tail = y(n.time + n.hold);
+      if (tail > h || y(n.time) < top - noteH) continue;
       const result = play.results[i];
       if (state === "done" && result?.judgement !== "miss") continue;
       const x = n.lane * laneW + laneW * 0.1;
       const nw = laneW * 0.8;
       const headY = state === "holding" ? lineY : y(n.time);
-      if (n.hold > 0 && top < headY) {
+      if (n.hold > 0 && tail < headY) {
         g.fillStyle = state === "done" ? COLORS.missed : COLORS.hold;
-        g.fillRect(x + nw * 0.3, top, nw * 0.4, headY - top);
+        g.fillRect(x + nw * 0.3, tail, nw * 0.4, headY - tail);
       }
       g.fillStyle = state === "done" ? COLORS.missed : COLORS.note;
       g.beginPath();
       g.roundRect(x, headY - noteH / 2, nw, noteH, noteH / 3);
       g.fill();
     }
+    g.restore();
+    g.fillStyle = COLORS.beat;
+    g.fillRect(0, top, w, 1);
 
     // Judgement line and keys.
     g.fillStyle = COLORS.line;
@@ -116,14 +132,14 @@ export class Playfield {
       g.fillRect(i * laneW, lineY + 2, 1, keysH);
     }
 
-    // Count-in, judgement, combo.
+    // Count-in in the header band, judgement, combo.
     g.textAlign = "center";
     g.textBaseline = "middle";
-    const countInStart = bars[0] - 4 * beatMs;
-    if (now >= countInStart && now < bars[0]) {
+    const beat = clicks.findLastIndex((t) => t <= now);
+    if (beat >= 0 && now < clicks[beat] + beatMs) {
       g.fillStyle = COLORS.text;
-      g.font = `${Math.round(h * 0.08)}px Georgia, serif`;
-      g.fillText(String(Math.floor((now - countInStart) / beatMs) + 1), w / 2, h * 0.35);
+      g.font = `${Math.round(top * 0.7)}px Georgia, serif`;
+      g.fillText(String(beat + 1), w / 2, top / 2);
     }
     if (play.last && now - play.last.time < 600) {
       const style = JUDGEMENT_STYLE[play.last.judgement];
