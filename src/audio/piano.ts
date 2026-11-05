@@ -38,8 +38,10 @@ export type Piano = ReturnType<typeof SubsetPiano>;
 
 // Cache-first in the samples cache that the service worker also serves, written from the page:
 // after one complete load the piano works offline, even on the first visit, when the service
-// worker does not control the page yet. Without Cache Storage (plain http) it just fetches.
-const sampleCache = (): Promise<Cache | null> => ("caches" in window ? caches.open(SAMPLES_CACHE).catch(() => null) : Promise.resolve(null));
+// worker does not control the page yet. The dev server (no service worker either) and plain
+// http without Cache Storage just fetch.
+const sampleCache = (): Promise<Cache | null> =>
+  "caches" in window && !import.meta.env.DEV ? caches.open(SAMPLES_CACHE).catch(() => null) : Promise.resolve(null);
 
 // True when a full set of samples sits in the cache, i.e. the piano loads offline.
 export async function samplesCached(): Promise<boolean> {
