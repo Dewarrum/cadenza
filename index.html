@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0908" />
+    <title>Cadenza</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <main id="app">
+      <section id="title" class="screen">
+        <h1>Cadenza</h1>
+        <p class="hint">Click or press any key to begin</p>
+      </section>
+
+      <section id="list" class="screen" hidden>
+        <h2>Pieces</h2>
+        <div class="progress" aria-label="Loading piano"><div id="progress-bar"></div></div>
+        <ul id="pieces"></ul>
+        <p class="hint">Keys D F J K · Space hits any lane on Easy</p>
+      </section>
+
+      <section id="play" class="screen" hidden>
+        <canvas id="field"></canvas>
+      </section>
+
+      <section id="results" class="screen" hidden>
+        <p id="result-piece" class="hint"></p>
+        <div id="grade" class="grade"></div>
+        <p id="accuracy" class="accuracy"></p>
+        <p id="full-combo" class="full-combo" hidden>Full Combo</p>
+        <dl id="counts"></dl>
+        <button id="back" type="button">Back to pieces</button>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
