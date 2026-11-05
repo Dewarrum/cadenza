@@ -25,14 +25,14 @@ async function touchscreen(page: Page) {
   };
 }
 
-test("touch play on a portrait phone with a two-finger press and a pause", async ({ page }) => {
+test("touch play on a portrait phone: a two-finger chord on Normal, a pause and a resume", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/?clock=manual");
   await page.locator("#title").tap();
-  const easy = page.locator('button[data-tier="easy"]');
-  await expect(easy).toBeEnabled({ timeout: 60_000 });
-  await easy.tap();
+  const normal = page.locator(".piece", { hasText: "Nocturne" }).locator('button[data-tier="normal"]');
+  await expect(normal).toBeEnabled({ timeout: 60_000 });
+  await normal.tap();
   await page.locator("#howto").tap();
 
   // The play screen fills the phone at device resolution.
@@ -42,34 +42,43 @@ test("touch play on a portrait phone with a two-finger press and a pause", async
   const dpr = await page.evaluate(() => devicePixelRatio);
   expect(await page.locator("#field").evaluate((c: HTMLCanvasElement) => c.width)).toBe(Math.round(viewport.width * dpr));
 
-  const notes = await page.evaluate(() => window.__cadenza.chart());
+  // Notes hit together form one group: one finger per lane, released after the longest tail
+  // or just before the next group.
+  const groups: Note[][] = [];
+  for (const n of await page.evaluate(() => window.__cadenza.chart())) {
+    const last = groups.at(-1);
+    if (last && last[0].time === n.time) last.push(n);
+    else groups.push([n]);
+  }
   const advance = (ms: number) => page.evaluate((t) => window.__cadenza.advance(t), ms);
   const results = () => page.evaluate(() => window.__cadenza.results().map((r) => r?.judgement ?? null));
-  const play = async (n: Note, extra: number[] = []) => {
-    await advance(n.time);
-    await fingers.down(n.lane, ...extra);
-    if (n.hold) await advance(n.time + n.hold + 20);
+  const releaseOf = (i: number) => {
+    const g = groups[i];
+    return Math.min(Math.max(...g.map((n) => n.time + n.hold)) + 20, (groups[i + 1]?.[0].time ?? Infinity) - 10);
+  };
+  const play = async (i: number) => {
+    await advance(groups[i][0].time);
+    await fingers.down(...groups[i].map((n) => n.lane));
+    await advance(releaseOf(i));
     await fingers.up();
   };
 
-  // Two fingers at once (the chord input path): the note's lane and an empty lane both light,
-  // and the note scores one hit. Easy has no chords, so the second lane has nothing to hit.
-  const first = notes[0];
-  const empty = (first.lane + 2) % 4;
-  await advance(first.time);
-  await fingers.down(first.lane, empty);
+  // The first chord of the Normal chart: two fingers, both lanes light, both notes score.
+  const chord = groups.findIndex((g) => g.length === 2);
+  for (let i = 0; i < chord; i++) await play(i);
+  await advance(groups[chord][0].time);
+  await fingers.down(...groups[chord].map((n) => n.lane));
   expect((await page.evaluate(() => window.__cadenza.lit())).filter(Boolean)).toHaveLength(2);
-  if (first.hold) await advance(first.time + first.hold + 20);
+  await advance(releaseOf(chord));
   await fingers.up();
-  expect((await results()).filter(Boolean)).toEqual(["perfect"]);
+  const before = groups.slice(0, chord + 1).flat().length;
+  expect((await results()).filter(Boolean)).toEqual(Array(before).fill("perfect"));
 
-  const BEFORE = 12;
-  for (const n of notes.slice(1, BEFORE)) await play(n);
-
-  // Pause between notes, resume: the clock rewinds at least 2 s, the notes in the rewound
-  // window are tapped again and nothing is judged twice.
-  const last = notes[BEFORE - 1];
-  const pausedAt = last.time + last.hold + 200;
+  // Pause in a gap of at least 600 ms after a few more groups, resume: the clock rewinds at
+  // least 2 s, the notes in the rewound window are tapped again and nothing is judged twice.
+  const last = groups.findIndex((_, i) => i >= chord + 8 && groups[i + 1][0].time - releaseOf(i) >= 600);
+  for (let i = chord + 1; i <= last; i++) await play(i);
+  const pausedAt = releaseOf(last) + 300;
   await advance(pausedAt);
   const judgedBefore = await results();
   await page.locator("#pause").tap();
@@ -78,21 +87,22 @@ test("touch play on a portrait phone with a two-finger press and a pause", async
   await expect(page.locator("#paused")).toBeHidden();
   const restart = await page.evaluate(() => window.__cadenza.now());
   expect(restart).toBeLessThanOrEqual(pausedAt - 2000);
-  for (const n of notes.filter((n) => n.time >= restart && n.time < pausedAt)) {
-    await advance(n.time);
-    await fingers.down(n.lane);
+  for (const g of groups.filter((g) => g[0].time >= restart && g[0].time < pausedAt)) {
+    await advance(g[0].time);
+    await fingers.down(...g.map((n) => n.lane));
     await fingers.up();
   }
   await advance(pausedAt);
   expect(await results()).toEqual(judgedBefore);
 
   const AFTER = 8;
-  for (const n of notes.slice(BEFORE, BEFORE + AFTER)) await play(n);
+  for (let i = last + 1; i <= last + AFTER; i++) await play(i);
   await advance((await page.evaluate(() => window.__cadenza.end())) + 2000);
 
   await expect(page.locator("#results")).toBeVisible();
+  const played = groups.slice(0, last + AFTER + 1).flat().length;
   const { counts } = (await page.evaluate(() => window.__cadenza.summary))!;
-  expect(counts.perfect).toBe(BEFORE + AFTER);
-  expect(counts.miss).toBe(notes.length - BEFORE - AFTER);
+  expect(counts.perfect).toBe(played);
+  expect(counts.miss).toBe(groups.flat().length - played);
   expect(errors).toEqual([]);
 });

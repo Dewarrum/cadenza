@@ -73,6 +73,7 @@ export class AudioEngine {
   private cursor = 0;
   private clicks: OscillatorNode[] = [];
   keySound = true;
+  readonly stats = { scheduled: 0, dropped: 0 }; // notes that play by themselves; dropped = timer came too late
 
   // Must run inside a user gesture so browsers allow audio.
   constructor() {
@@ -156,9 +157,13 @@ export class AudioEngine {
     const now = this.clock.now();
     while (this.cursor < this.auto.length && this.auto[this.cursor].time <= now + LOOKAHEAD_MS) {
       const n = this.auto[this.cursor++];
-      if (n.time < now - STALE_MS) continue;
+      if (n.time < now - STALE_MS) {
+        this.stats.dropped++;
+        continue;
+      }
       const time = Math.max(this.clock.toAudio(n.time), this.ctx.currentTime);
       this.piano.start({ note: n.pitch, velocity: n.velocity, time, duration: n.duration / 1000 });
+      this.stats.scheduled++;
     }
   }
 

@@ -14,7 +14,6 @@ const pieces = Object.entries(modules)
   .map(([, piece]) => piece);
 
 const TIERS: TierName[] = ["easy", "normal", "hard"];
-const PLAYABLE: TierName[] = ["easy"]; // Normal and Hard arrive with the S3 generator
 const APPROACH_MS: Record<TierName, number> = { easy: 1500, normal: 1200, hard: 1200 };
 const AUDIO_OFFSET_MS = 0; // calibration arrives in S4
 const KEYS: Record<string, Source> = { KeyD: 0, KeyF: 1, KeyJ: 2, KeyK: 3, Space: "any" };
@@ -81,8 +80,8 @@ function renderList(): void {
         const button = document.createElement("button");
         button.type = "button";
         button.dataset.tier = tier;
-        button.disabled = !PLAYABLE.includes(tier) || !engine?.pianoReady;
-        button.innerHTML = `${tier[0].toUpperCase()}${tier.slice(1)}<small>${PLAYABLE.includes(tier) ? `Level ${piece.tiers[tier].level}` : "soon"}</small>`;
+        button.disabled = !engine?.pianoReady;
+        button.innerHTML = `${tier[0].toUpperCase()}${tier.slice(1)}<small>Level ${piece.tiers[tier].level}</small>`;
         button.addEventListener("click", () => startPlay(piece, tier));
         item.querySelector(".tiers")!.append(button);
       }
@@ -270,6 +269,7 @@ window.__cadenza = {
   results: () => session?.play.results ?? [],
   lit: () => session?.play.litLanes() ?? [],
   now: () => session?.clock.now() ?? 0,
+  audio: () => engine?.stats,
   // Manual clock only: jump the song clock to `ms` and run the game logic.
   advance(ms: number) {
     if (!session || !(session.clock instanceof ManualClock)) throw new Error("advance() needs ?clock=manual during play");

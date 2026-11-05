@@ -74,7 +74,12 @@ h2 { font-size: 1.8rem; }
 
 #title, #howto { cursor: pointer; }
 
-#pieces { list-style: none; padding: 0; margin: 0; width: 100%; }
+/* The list centres while it fits and scrolls from the top once it overflows: the auto margins
+   of the two spacers take the free space and shrink to nothing when there is none. */
+#list { justify-content: flex-start; }
+#list::before, #list::after { content: ""; margin-block: auto; }
+
+#pieces { list-style: none; padding: 0; margin: 0; width: 100%; display: grid; gap: 0.8rem; }
 
 .piece {
   border: 1px solid rgba(243, 234, 216, 0.15);
