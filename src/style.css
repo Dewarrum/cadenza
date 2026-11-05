@@ -1,9 +1,51 @@
+@import "./fonts.css";
+
+/* Design tokens. The palette comes from the instrument: lacquer, ivory keys, gilt lettering,
+   the red felt of the key strip. Gilt is earned (the line, Perfect, S, full combo, the mark,
+   focus), never decoration. Bodoni Moda speaks for the music, Hanken Grotesk for the controls.
+   The type scale steps by a major third (5:4) from 16 px. The play screen's colours live in
+   render/playfield.ts. */
 :root {
   color-scheme: dark;
-  --bg: #0b0908;
-  --ivory: #f3ead8;
-  --muted: #a99f8f;
-  --gold: #d9b25f;
+
+  --lacquer: #0e0b09;
+  --lacquer-raised: #1a1612;
+  --ivory: #f1e7d3;
+  --ivory-press: #e2d5bb;
+  --gilt: #d3aa5c;
+  --parchment: #a39884; /* secondary text */
+  --moonlight: #8fb3c6; /* Great */
+  --pewter: #b8b2a6; /* Good */
+  --felt: #c27262; /* Miss, destructive actions */
+  --hairline: rgba(241, 231, 211, 0.14);
+  --hairline-strong: rgba(241, 231, 211, 0.28);
+  --lamp: rgba(160, 98, 44, 0.2); /* the warm light under the vignette */
+
+  --serif: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
+  --sans: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --step--1: 0.8rem; /* 12.8 */
+  --step-0: 1rem; /* 16 */
+  --step-1: 1.25rem; /* 20 */
+  --step-2: 1.5625rem; /* 25 */
+  --step-3: 1.953rem; /* 31.25 */
+  --step-4: 2.441rem; /* 39 */
+  --step-5: 3.052rem; /* 48.8 */
+  --step-6: 3.815rem; /* 61 */
+  --step-8: 5.96rem; /* 95.4 */
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  --radius-key: 3px 3px 10px 10px; /* a key seen from above: square at the back, round at the front */
+  --radius-panel: 14px;
+  --shadow-raised: 0 18px 48px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.4);
+  --lip: inset 0 -3px 0 rgba(60, 40, 20, 0.16); /* the front edge of an ivory key */
+  --target: 48px;
   --header: 52px; /* HEADER_PX in render/playfield.ts */
 }
 
@@ -12,9 +54,6 @@
 html, body {
   margin: 0;
   height: 100%;
-  background: #050404;
-  color: var(--ivory);
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   overflow: hidden;
   overscroll-behavior: none;
   -webkit-user-select: none;
@@ -23,100 +62,241 @@ html, body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* A phone fills the visible viewport; wider screens get a phone-shaped column. */
+body {
+  background: radial-gradient(ellipse 70% 60% at 50% 62%, var(--lamp), transparent 70%), radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.6)), var(--lacquer);
+  color: var(--ivory);
+  font: 400 var(--step-0) / 1.45 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.defs { position: absolute; }
+
+/* A phone fills the visible viewport; wider screens get a phone-shaped column, lifted off the
+   dark surround like a lit music stand. */
 #app {
+  position: relative;
   width: 100vw;
   height: 100dvh;
   margin: 0 auto;
-  background: radial-gradient(ellipse at 50% 70%, rgba(120, 70, 30, 0.22), transparent 70%), var(--bg);
+  overflow: hidden;
+  background: radial-gradient(ellipse 120% 70% at 50% 78%, var(--lamp), transparent 72%), var(--lacquer);
 }
 
 @media (min-aspect-ratio: 2/3) {
-  #app { width: calc(100dvh * 9 / 19.5); }
+  body { display: grid; place-items: center; }
+  #app {
+    width: calc((100dvh - 2 * var(--space-5)) * 9 / 19.5);
+    height: calc(100dvh - 2 * var(--space-5));
+    border-radius: 22px;
+    box-shadow: 0 0 0 1px rgba(241, 231, 211, 0.07), 0 40px 120px rgba(0, 0, 0, 0.7), 0 0 160px rgba(160, 98, 44, 0.08);
+  }
 }
+
+/* ---------- Type ---------- */
+
+h1, h2, h3 {
+  font-family: var(--serif);
+  font-weight: 400;
+  margin: 0;
+  line-height: 1.15;
+}
+
+h2 { font-size: var(--step-3); font-style: italic; }
+h3 { font-size: var(--step-1); font-style: italic; color: var(--parchment); }
+
+p { margin: 0; }
+
+.hint { color: var(--parchment); font-size: 0.9375rem; line-height: 1.5; }
+.hint.small { font-size: var(--step--1); }
+.hint[hidden] { display: none; }
+
+/* Keyboard hints only where there is a keyboard to speak of. */
+@media (hover: none) and (pointer: coarse) {
+  .keyboard-only { display: none; }
+}
+
+.keys-hint { color: var(--ivory); letter-spacing: 0.08em; }
+
+/* ---------- Screens ---------- */
 
 .screen {
   height: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  padding: max(1.5rem, env(safe-area-inset-top)) max(1.5rem, env(safe-area-inset-right))
-    max(1.5rem, env(safe-area-inset-bottom)) max(1.5rem, env(safe-area-inset-left));
+  gap: var(--space-4);
+  padding: max(var(--space-5), env(safe-area-inset-top)) max(var(--space-5), env(safe-area-inset-right))
+    max(var(--space-5), env(safe-area-inset-bottom)) max(var(--space-5), env(safe-area-inset-left));
   overflow-y: auto;
-  text-align: center;
 }
 
 .screen[hidden] { display: none; }
+
+/* A screen's title bar: heading left, an optional quiet action right. */
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: var(--target);
+}
+
+/* The bottom of a screen: actions within thumb reach. */
+.foot {
+  margin-top: auto;
+  display: grid;
+  gap: var(--space-3);
+  justify-items: center;
+  text-align: center;
+}
+
+.actions { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; justify-items: stretch; gap: var(--space-3); width: 100%; }
+.actions button { padding-inline: var(--space-3); }
+.actions[hidden] { display: none; }
+
+/* ---------- Buttons: ivory is for what you press ---------- */
+
+button {
+  font: 600 var(--step-0) / 1.2 var(--sans);
+  color: var(--lacquer);
+  background: var(--ivory);
+  border: 1px solid transparent;
+  border-radius: var(--radius-key);
+  box-shadow: var(--lip);
+  min-height: var(--target);
+  padding: var(--space-3) var(--space-5);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color 120ms, transform 80ms;
+}
+
+button:active:not(:disabled) { background: var(--ivory-press); transform: translateY(1px); box-shadow: none; }
+button:disabled { opacity: 0.38; cursor: default; }
+
+button.quiet {
+  background: transparent;
+  color: var(--ivory);
+  border-color: var(--hairline-strong);
+  box-shadow: none;
+  font-weight: 400;
+}
+
+button.quiet:active:not(:disabled) { background: rgba(241, 231, 211, 0.08); }
+button.danger { color: var(--felt); }
+button.danger:not(.quiet) { background: var(--felt); color: var(--lacquer); }
+
+:focus-visible { outline: 2px solid var(--gilt); outline-offset: 3px; }
+:focus:not(:focus-visible) { outline: none; }
+
+/* ---------- Title ---------- */
+
+#title, #howto { cursor: pointer; }
+
+#title { align-items: center; text-align: center; }
+
+.title-mark {
+  margin-top: auto;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  animation: rise 1.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.fermata { width: 4.5rem; height: 2.55rem; fill: var(--gilt); margin-bottom: var(--space-1); }
+
+h1 {
+  font-size: var(--step-6);
+  font-style: italic;
+  color: var(--gilt);
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+.tagline { font-family: var(--serif); font-size: var(--step-1); color: var(--parchment); }
+
+.begin { font-size: var(--step-1); color: var(--ivory); }
+#title .foot { margin-top: auto; padding-bottom: var(--space-6); animation: rise 1.6s 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+
+/* The one orchestrated moment: the title comes up out of the dark. */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .title-mark, #title .foot { animation: none; }
+}
+
+/* ---------- Piece list: a concert programme ---------- */
+
+#pieces { list-style: none; padding: 0; margin: 0; display: grid; }
+
+.piece {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-5) 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.piece:last-child { border-bottom: 1px solid var(--hairline); }
+.piece .composer { font: italic var(--step-0) / 1.3 var(--serif); color: var(--parchment); }
+.piece .name { font: 400 var(--step-2) / 1.15 var(--serif); color: var(--ivory); margin: 0; }
+.piece .opus { font-size: 0.9375rem; color: var(--parchment); }
+
+/* Three tier keys on one row; "Level 10" must not wrap on a 360 px phone. */
+.tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2); margin-top: var(--space-4); }
+
+.tiers button {
+  display: grid;
+  grid-template-rows: auto auto 1.75rem;
+  justify-items: center;
+  align-content: start;
+  gap: 2px;
+  padding: var(--space-3) var(--space-1) var(--space-2);
+  color: var(--ivory);
+  background: linear-gradient(#1d1814, #14110e);
+  border: 1px solid var(--hairline);
+  box-shadow: inset 0 1px 0 rgba(241, 231, 211, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.35); /* an ebony key's front edge */
+  white-space: nowrap;
+}
+
+.tiers button:active:not(:disabled) { background: #241e18; }
+.tiers button small { font-size: var(--step--1); font-weight: 400; color: var(--parchment); }
+
+.tiers .best { display: flex; align-items: baseline; gap: 0.3em; color: var(--gilt); }
+.tiers .best b { font: 400 var(--step-2) / 1 var(--serif); }
+.tiers .best[data-grade]:not([data-grade="S"]) b { color: var(--ivory); }
+
+.progress { width: 100%; height: 2px; background: var(--hairline); overflow: hidden; }
+.progress[hidden] { display: none; }
+#progress-bar { height: 100%; width: 0; background: var(--gilt); transition: width 0.2s; }
+
+#list .foot { justify-items: stretch; }
+
+/* ---------- How to play ---------- */
+
+#howto { align-items: center; text-align: center; }
+#howto h2 { margin-top: auto; }
+
+.sketch { width: min(13rem, 62%); border-radius: 6px; box-shadow: 0 0 0 1px var(--hairline); }
+.sketch-note { fill: #f1e7d3; }
+.sketch-label { fill: var(--parchment); font: italic 10px var(--serif); text-anchor: middle; }
+
+.rules { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-2); max-width: 21rem; text-align: left; }
+.rules b { color: var(--gilt); font: italic 400 1.0625rem var(--serif); }
+
+/* ---------- Play ---------- */
 
 #play {
   position: relative;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   overflow: hidden;
   touch-action: none;
+  background: var(--lacquer);
 }
 
 #field { display: block; width: 100%; height: 100%; touch-action: none; }
 
-h1, h2, .grade {
-  font-family: Georgia, "Times New Roman", serif;
-  font-weight: normal;
-  margin: 0;
-}
-
-h1 { font-size: 3rem; letter-spacing: 0.04em; color: var(--gold); }
-h2 { font-size: 1.8rem; }
-
-.hint { color: var(--muted); font-size: 0.9rem; margin: 0; }
-.hint.small { font-size: 0.75rem; }
-.hint[hidden] { display: none; }
-
-#title, #howto { cursor: pointer; }
-
-/* The list centres while it fits and scrolls from the top once it overflows: the auto margins
-   of the two spacers take the free space and shrink to nothing when there is none. */
-#list { justify-content: flex-start; }
-#list::before, #list::after { content: ""; margin-block: auto; }
-
-#pieces { list-style: none; padding: 0; margin: 0; width: 100%; display: grid; gap: 0.8rem; }
-
-.piece {
-  border: 1px solid rgba(243, 234, 216, 0.15);
-  border-radius: 0.6rem;
-  padding: 1rem;
-}
-
-.piece .composer { color: var(--muted); font-size: 0.85rem; }
-.piece .name { font-family: Georgia, serif; font-size: 1.2rem; margin: 0.2rem 0 0.8rem; }
-.tiers { display: flex; gap: 0.5rem; justify-content: center; }
-.tiers button { flex: 1; }
-
-button {
-  font: inherit;
-  color: var(--bg);
-  background: var(--ivory);
-  border: none;
-  border-radius: 0.4rem;
-  min-height: 3rem;
-  padding: 0.6rem 1rem;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-button:disabled { opacity: 0.35; cursor: default; }
-button small { display: block; font-size: 0.7rem; opacity: 0.7; }
-
-.progress { width: 60%; height: 3px; background: rgba(243, 234, 216, 0.12); }
-.progress[hidden] { display: none; }
-#progress-bar { height: 100%; width: 0; background: var(--gold); transition: width 0.2s; }
-
-.sketch { width: min(9rem, 40%); }
-.sketch text { fill: var(--muted); font: 7px Georgia, serif; text-anchor: middle; }
-.rules { list-style: none; padding: 0; margin: 0; line-height: 1.6; }
-.rules b { color: var(--gold); font-weight: normal; }
-
-/* Pause button sits in the header band of the canvas, top right. */
+/* The pause button sits in the header band of the canvas, top right. */
 .pause {
   position: absolute;
   top: env(safe-area-inset-top);
@@ -128,9 +308,13 @@ button small { display: block; font-size: 0.7rem; opacity: 0.7; }
   display: grid;
   place-items: center;
   background: transparent;
-  color: var(--muted);
+  border: none;
+  box-shadow: none;
+  color: var(--parchment);
   fill: currentColor;
 }
+
+.pause:active:not(:disabled) { background: transparent; color: var(--ivory); }
 
 .overlay {
   position: absolute;
@@ -138,13 +322,220 @@ button small { display: block; font-size: 0.7rem; opacity: 0.7; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 0.8rem;
-  background: rgba(11, 9, 8, 0.88);
+  gap: var(--space-6);
+  padding: var(--space-7) var(--space-5) max(var(--space-7), env(safe-area-inset-bottom));
+  background: rgba(14, 11, 9, 0.9);
 }
 
 .overlay[hidden] { display: none; }
-.overlay button, #back { width: min(16rem, 100%); }
+.overlay h2 { margin-top: auto; font-size: var(--step-4); }
+.stack { display: grid; gap: var(--space-3); width: min(18rem, 100%); margin-top: auto; }
+
+/* ---------- Results ---------- */
+
+#results { align-items: center; text-align: center; }
+
+.results-main {
+  margin-block: auto;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.result-piece { font: italic var(--step-1) / 1.3 var(--serif); color: var(--parchment); }
+.result-piece span { display: block; font: 400 var(--step--1) var(--sans); margin-top: var(--space-1); }
+
+.grade {
+  font: 400 clamp(6rem, 34vw, 9.3rem) / 1 var(--serif);
+  color: var(--ivory);
+  margin-top: var(--space-4);
+}
+
+.grade[data-grade="S"] { color: var(--gilt); }
+.accuracy { font-size: var(--step-3); font-weight: 600; letter-spacing: -0.01em; }
+.full-combo { font: italic var(--step-1) var(--serif); color: var(--gilt); }
+.full-combo[hidden] { display: none; }
+.best-line { color: var(--parchment); font-size: 0.9375rem; }
+.best-line.new { color: var(--gilt); }
+
+/* Judgement counts in one row, each in its play-screen colour. */
+#counts {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  width: 100%;
+  margin: var(--space-5) 0 0;
+  padding: var(--space-4) 0;
+  border-block: 1px solid var(--hairline);
+}
+
+#counts div { display: flex; flex-direction: column-reverse; gap: 2px; }
+#counts dt { font-size: var(--step--1); color: var(--parchment); }
+#counts dd { margin: 0; font-size: var(--step-2); font-weight: 600; }
+#counts .perfect dd { color: var(--gilt); }
+#counts .great dd { color: var(--moonlight); }
+#counts .good dd { color: var(--pewter); }
+#counts .miss dd { color: var(--felt); }
+
+.max-combo { color: var(--parchment); font-size: 0.9375rem; }
+.max-combo b { color: var(--ivory); font-weight: 600; }
+
+/* ---------- Settings ---------- */
+
+.group { display: grid; gap: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--hairline); }
+.setting { display: grid; gap: var(--space-2); }
+.setting-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); min-height: var(--target); }
+.label { font-size: var(--step-0); }
+.setting output { font-weight: 600; text-align: right; }
+.setting > button { justify-self: start; }
+
+.stepper { display: flex; align-items: center; gap: var(--space-2); }
+.stepper button { width: var(--target); padding: 0; font-size: var(--step-1); }
+.stepper output { min-width: 4.5rem; text-align: center; }
+
+/* Approach time: per tier or one time for all, as an explicit choice. */
+.segmented { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--hairline-strong); border-radius: var(--radius-key); overflow: hidden; }
+.segmented label { position: relative; display: grid; place-items: center; min-height: var(--target); cursor: pointer; color: var(--parchment); }
+.segmented label + label { border-left: 1px solid var(--hairline-strong); }
+.segmented input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.segmented label:has(:checked) { background: var(--ivory); color: var(--lacquer); font-weight: 600; }
+.segmented label:has(:focus-visible) { outline: 2px solid var(--gilt); outline-offset: -4px; }
+
+/* Sliders: a thin rule filled in gilt up to an ivory thumb. --fill is set by the screen. */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: var(--target);
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  --fill: 50%;
+}
+
+input[type="range"]::-webkit-slider-runnable-track { height: 3px; border-radius: 2px; background: linear-gradient(to right, var(--gilt) var(--fill), var(--hairline-strong) var(--fill)); }
+input[type="range"]::-moz-range-track { height: 3px; border-radius: 2px; background: linear-gradient(to right, var(--gilt) var(--fill), var(--hairline-strong) var(--fill)); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -10.5px; border-radius: 50%; background: var(--ivory); border: none; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5); }
+input[type="range"]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: var(--ivory); border: none; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5); }
+input[type="range"].at-default::-webkit-slider-runnable-track { background: var(--hairline-strong); }
+input[type="range"].at-default::-moz-range-track { background: var(--hairline-strong); }
+input[type="range"].at-default::-webkit-slider-thumb { background: var(--parchment); }
+input[type="range"].at-default::-moz-range-thumb { background: var(--parchment); }
+
+/* Key sound: a switch. */
+.switch { cursor: pointer; }
+.switch input {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: none;
+  width: 3.25rem;
+  height: 2rem;
+  margin: 0;
+  border-radius: 1rem;
+  background: var(--hairline-strong);
+  position: relative;
+  cursor: pointer;
+  transition: background-color 150ms;
+}
+.switch input::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--ivory);
+  transition: transform 150ms;
+}
+.switch input:checked { background: var(--gilt); }
+.switch input:checked::after { transform: translateX(1.25rem); }
+
+/* Lane keys: four keycaps. */
+.keys { display: grid; grid-template-columns: repeat(4, var(--target)); gap: var(--space-3); }
+.keys button { padding: 0; width: var(--target); font-weight: 600; }
+.keys button.binding { background: transparent; color: var(--gilt); border-color: var(--gilt); box-shadow: none; }
+
+#settings .group:last-of-type .setting { justify-items: start; }
+#settings-note[hidden] { display: none; }
+
+.sticky {
+  position: sticky;
+  bottom: calc(-1 * max(var(--space-5), env(safe-area-inset-bottom)));
+  margin-inline: calc(-1 * var(--space-5));
+  padding: var(--space-6) var(--space-5) max(var(--space-5), env(safe-area-inset-bottom));
+  background: linear-gradient(transparent, var(--lacquer) 40%);
+}
+
+#settings-back, #back, #cal-cancel { width: 100%; }
+#calibration .foot { justify-items: stretch; }
+
+/* ---------- Calibration ---------- */
+
+.lead { font-size: 0.9375rem; }
+
+.pad {
+  position: relative;
+  flex: 1;
+  min-height: 15rem;
+  max-height: 26rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  text-align: center;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-panel);
+  background: radial-gradient(circle at 50% 45%, rgba(241, 231, 211, 0.04), transparent 60%);
+  cursor: pointer;
+  touch-action: none;
+  overflow: hidden;
+}
+
+.pad.running { border-color: rgba(211, 170, 92, 0.55); }
+.pad.done { cursor: default; background: var(--lacquer-raised); border-color: var(--hairline); }
+
+/* The beat ring: pulses on each count-in click and on each tap. */
+.pulse {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 11rem;
+  height: 11rem;
+  margin: -5.5rem 0 0 -5.5rem;
+  border-radius: 50%;
+  border: 1px solid var(--gilt);
+  opacity: 0;
+  pointer-events: none;
+}
+
+#cal-status { position: relative; font: italic var(--step-3) / 1.2 var(--serif); }
+.pad.done #cal-status { font-size: var(--step-2); }
+#cal-count { position: relative; color: var(--parchment); font-size: 0.9375rem; max-width: 22rem; }
+
+.dots { position: relative; display: flex; gap: 6px; margin-top: var(--space-3); }
+.dots span { width: 7px; height: 7px; border-radius: 50%; border: 1px solid var(--hairline-strong); }
+.dots span.on { background: var(--gilt); border-color: var(--gilt); }
+.pad.done .dots { display: none; }
+
+/* ---------- Dialog, overlays, toast ---------- */
+
+.dialog {
+  width: min(22rem, calc(100vw - 2 * var(--space-5)));
+  padding: var(--space-5);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-panel);
+  background: var(--lacquer-raised);
+  color: var(--ivory);
+  box-shadow: var(--shadow-raised);
+}
+
+.dialog::backdrop { background: rgba(5, 4, 3, 0.72); }
+.dialog form { display: grid; gap: var(--space-3); }
+.dialog-title { font: italic var(--step-2) / 1.2 var(--serif); }
+.dialog .actions { margin-top: var(--space-3); }
 
 /* Landscape on a phone is out of scope: main.ts shows this over everything and pauses. */
 .rotate {
@@ -152,82 +543,35 @@ button small { display: block; font-size: 0.7rem; opacity: 0.7; }
   inset: 0;
   z-index: 10;
   display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
   align-items: center;
   justify-content: center;
-  background: var(--bg);
-  color: var(--muted);
+  background: var(--lacquer);
+  color: var(--ivory);
+  font: italic var(--step-1) var(--serif);
 }
 
 .rotate[hidden] { display: none; }
-
-.grade { font-size: 6rem; color: var(--gold); line-height: 1; }
-.accuracy { font-size: 1.6rem; margin: 0; }
-.full-combo { color: var(--gold); margin: 0; letter-spacing: 0.1em; text-transform: uppercase; font-size: 0.8rem; }
-
-#counts {
-  display: grid;
-  grid-template-columns: auto auto;
-  gap: 0.3rem 1.5rem;
-  margin: 0.5rem 0 1rem;
-}
-
-#counts dt { color: var(--muted); text-align: left; }
-#counts dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
-
-/* Results: best comparison; piece list: best grade per tier. */
-.best-line { color: var(--muted); margin: 0; font-size: 0.9rem; }
-.best-line.new { color: var(--gold); }
-.tiers button small.best { font-weight: bold; opacity: 0.9; }
-
-button.quiet { background: transparent; color: var(--ivory); border: 1px solid rgba(243, 234, 216, 0.25); min-height: 2.6rem; }
-
-/* Settings and calibration: plain controls; the design pass (S5) restyles them. */
-#settings { justify-content: flex-start; }
-#settings::before, #settings::after { content: ""; margin-block: auto; }
-.setting { width: 100%; display: grid; gap: 0.4rem; justify-items: center; }
-.setting .label { color: var(--muted); font-size: 0.85rem; }
-.setting .toggle { display: flex; gap: 0.5rem; align-items: center; color: var(--ivory); font-size: 1rem; }
-.row { display: flex; gap: 0.5rem; align-items: center; justify-content: center; }
-.row output { min-width: 5rem; font-variant-numeric: tabular-nums; }
-.setting input[type="range"] { width: 100%; accent-color: var(--gold); }
-.keys button { width: 3.2rem; }
-.keys button.binding { background: var(--gold); }
-#settings-back, #cal-cancel { width: min(16rem, 100%); }
-
-.pad {
-  width: 100%;
-  flex: 1;
-  max-height: 45vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  border: 1px dashed rgba(243, 234, 216, 0.3);
-  border-radius: 0.8rem;
-  cursor: pointer;
-  touch-action: none;
-}
-.pad.running { border-style: solid; border-color: var(--gold); }
-#cal-status { font-family: Georgia, serif; font-size: 1.8rem; }
-#cal-count { color: var(--muted); }
-#cal-result[hidden] { display: none; }
 
 /* "Update available" toast; never over the play screen. */
 .toast {
   position: fixed;
   left: 50%;
-  bottom: max(1rem, env(safe-area-inset-bottom));
+  bottom: max(var(--space-4), env(safe-area-inset-bottom));
   transform: translateX(-50%);
   z-index: 20;
   display: flex;
-  gap: 0.8rem;
+  gap: var(--space-4);
   align-items: center;
-  padding: 0.5rem 0.5rem 0.5rem 1rem;
-  border-radius: 0.6rem;
-  background: #221d18;
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-5);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-panel);
+  background: var(--lacquer-raised);
+  box-shadow: var(--shadow-raised);
   color: var(--ivory);
   white-space: nowrap;
 }
-.toast button { min-height: 2.4rem; }
+
+.toast button { background: transparent; color: var(--gilt); box-shadow: none; padding-inline: var(--space-4); }
 .toast[hidden], body[data-screen="play"] .toast { display: none; }

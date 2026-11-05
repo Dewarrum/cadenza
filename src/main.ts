@@ -35,11 +35,18 @@ let engine: AudioEngine | null = null;
 let session: Session | null = null;
 let lastSummary: Summary | null = null;
 let pending: [Piece, TierName] | null = null; // the play waiting behind the how-to card
+let lastPlayed: [Piece, TierName] | null = null; // for Retry, and the tier the settings speak of
 let settings: Settings = loadSettings();
 let keyMap: Record<string, Source> = {};
 let settingsFrom: Screen = "list";
 
 for (const el of document.querySelectorAll<HTMLElement>(".ios-only")) el.hidden = !iOS;
+if (touchDevice.matches) $("title").querySelector(".begin")!.textContent = "Tap to begin";
+// The play screen draws text with the page's fonts; load them before the first frame needs them.
+for (const font of ['400 20px "Bodoni Moda"', 'italic 400 20px "Bodoni Moda"', '600 20px "Hanken Grotesk"']) void document.fonts?.load(font).catch(() => {});
+
+const capital = (word: string) => `${word[0].toUpperCase()}${word.slice(1)}`;
+const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className = "", text = "") => Object.assign(document.createElement(tag), { className, textContent: text });
 
 function show(name: Screen): void {
   for (const el of document.querySelectorAll<HTMLElement>(".screen")) el.hidden = el.id !== name;
@@ -69,6 +76,7 @@ const settingsUi = settingsScreen({
   get: () => settings,
   change: changeSettings,
   latencyMs,
+  tier: () => session?.tier ?? lastPlayed?.[1] ?? null,
   calibrate: () => {
     show("calibration");
     calibrationUi.open();
@@ -133,25 +141,30 @@ $("title").addEventListener("click", begin);
 
 const bestText = (b: Best) => `${b.accuracy.toFixed(2)}% ${b.grade}${b.fullCombo ? " · Full Combo" : ""}`;
 
+// A programme entry per piece: composer, title, opus, then a key per tier with its level and
+// the best grade ("S · FC" for a full combo).
 function renderList(): void {
   const results = loadResults();
-  const el = (tag: string, className: string, text = "") => Object.assign(document.createElement(tag), { className, textContent: text });
   $("pieces").replaceChildren(
     ...PIECES.map((info) => {
       const tiers = el("div", "tiers");
       for (const tier of TIERS) {
-        const button = el("button", "", `${tier[0].toUpperCase()}${tier.slice(1)}`) as HTMLButtonElement;
+        const button = el("button");
         button.type = "button";
         button.dataset.tier = tier;
         button.disabled = !engine?.pianoReady;
-        button.append(el("small", "", `Level ${info.levels[tier]}`));
         const best = results[info.id]?.[tier];
-        if (best) button.append(el("small", "best", best.fullCombo ? `${best.grade} · FC` : best.grade));
+        const mark = el("small", "best");
+        if (best) {
+          mark.dataset.grade = best.grade;
+          mark.append(el("b", "", best.grade), best.fullCombo ? " · FC" : "");
+        }
+        button.append(el("span", "", capital(tier)), el("small", "", `Level ${info.levels[tier]}`), mark);
         button.addEventListener("click", () => void choose(info, tier));
         tiers.append(button);
       }
       const item = el("li", "piece");
-      item.append(el("div", "composer", info.composer), el("div", "name", `${info.title}, ${info.opus}`), tiers);
+      item.append(el("p", "composer", info.composer), el("h3", "name", info.title), el("p", "opus", info.opus), tiers);
       return item;
     }),
   );
@@ -180,6 +193,7 @@ async function choose(info: PieceInfo, tier: TierName): Promise<void> {
 function startPlay(piece: Piece, tier: TierName): void {
   if (!engine) return;
   void engine.unlock(); // still inside the tap
+  lastPlayed = [piece, tier];
   show("play");
   playfield.resize();
   $("paused").hidden = true;
@@ -277,29 +291,26 @@ function endPlay(s: Session): void {
   const summary = s.play.summary();
   lastSummary = summary;
   const { best, previous, isNew } = recordResult(s.piece.id, s.tier, summary);
-  $("result-piece").textContent = `${s.piece.title} · ${s.tier}`;
+  $("result-piece").replaceChildren(s.piece.title, el("span", "", capital(s.tier)));
   $("grade").textContent = summary.grade;
+  $("grade").dataset.grade = summary.grade;
   $("accuracy").textContent = `${summary.accuracy.toFixed(2)}%`;
   $("full-combo").hidden = !summary.fullCombo;
   $("best").textContent = isNew ? (previous ? `New best · before: ${bestText(previous)}` : "New best") : `Best: ${bestText(best)}`;
   $("best").classList.toggle("new", isNew);
-  const rows: [string, number][] = [
-    ["Perfect", summary.counts.perfect],
-    ["Great", summary.counts.great],
-    ["Good", summary.counts.good],
-    ["Miss", summary.counts.miss],
-    ["Max combo", summary.maxCombo],
-  ];
   $("counts").replaceChildren(
-    ...rows.flatMap(([label, value]) => [
-      Object.assign(document.createElement("dt"), { textContent: label }),
-      Object.assign(document.createElement("dd"), { textContent: String(value) }),
-    ]),
+    ...(["perfect", "great", "good", "miss"] as const).map((j) => {
+      const row = el("div", j);
+      row.append(el("dt", "", capital(j)), el("dd", "", String(summary.counts[j])));
+      return row;
+    }),
   );
+  $("max-combo").replaceChildren("Max combo ", el("b", "", String(summary.maxCombo)));
   show("results");
 }
 
 $("back").addEventListener("click", toList);
+$("retry").addEventListener("click", () => lastPlayed && startPlay(...lastPlayed));
 
 // Input: lanes on the canvas, keys on the window. Both use the event timestamp.
 const lanes = new LanePointers($("field"), {

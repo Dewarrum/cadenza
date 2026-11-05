@@ -2,6 +2,9 @@
 // path as the piano; the player taps on each. A tap's time is its event timestamp mapped onto
 // the audio clock inside the handler, exactly as during play, so the median delay is the
 // offset the judge has to subtract. Backgrounding or a suspended context stops the run.
+// The ring on the pad pulses with the four count-in clicks only: during the measured clicks a
+// visual beat would have the player tap to the picture instead of the sound. Taps flash the pad
+// and fill one of the sixteen marks.
 import { AudioClock, type AudioEngine } from "../audio/engine.ts";
 import { CALIBRATION, calibrate, tapDeltas } from "../game/calibration.ts";
 
@@ -20,8 +23,14 @@ export function calibrationScreen(deps: CalibrationDeps) {
   const { countIn, clicks: count, intervalMs } = CALIBRATION;
   const clickTimes = Array.from({ length: countIn + count }, (_, i) => i * intervalMs);
   const measured = clickTimes.slice(countIn);
-  let run: { clock: AudioClock; taps: number[]; frame: number } | null = null;
+  let run: { clock: AudioClock; taps: number[]; frame: number; beat: number } | null = null;
   let result: number | null = null;
+  const pad = $("cal-pad");
+  const dots = Array.from({ length: count }, () => document.createElement("span"));
+  $("cal-dots").replaceChildren(...dots);
+  const marks = (n: number) => dots.forEach((d, i) => d.classList.toggle("on", i < n));
+  const ring = () =>
+    $("cal-pulse").animate([{ opacity: 0.85, transform: "scale(0.55)" }, { opacity: 0, transform: "scale(1.2)" }], { duration: 500, easing: "cubic-bezier(0.2, 0.7, 0.2, 1)" });
 
   const status = (text: string, detail = "") => {
     $("cal-status").textContent = text;
@@ -30,7 +39,8 @@ export function calibrationScreen(deps: CalibrationDeps) {
 
   function idle(text: string, detail = "Tap here to start"): void {
     run = null;
-    $("cal-pad").classList.remove("running");
+    pad.classList.remove("running", "done");
+    marks(0);
     status(text, detail);
   }
 
@@ -44,8 +54,10 @@ export function calibrationScreen(deps: CalibrationDeps) {
     engine.stop();
     const clock = new AudioClock(engine.ctx, -LEAD_MS);
     clickTimes.forEach((t, i) => engine.click(clock.toAudio(t), i >= countIn));
-    run = { clock, taps: [], frame: 0 };
-    $("cal-pad").classList.add("running");
+    run = { clock, taps: [], frame: 0, beat: -1 };
+    pad.classList.add("running");
+    pad.classList.remove("done");
+    marks(0);
     tick();
   }
 
@@ -53,6 +65,8 @@ export function calibrationScreen(deps: CalibrationDeps) {
     if (!run) return;
     const now = run.clock.now();
     const beat = clickTimes.findLastIndex((t) => t <= now);
+    if (beat !== run.beat && beat >= 0 && beat < countIn) ring();
+    run.beat = beat;
     if (beat < countIn) status(beat < 0 ? "Listen" : String(beat + 1), "count-in");
     else status("Tap", `${run.taps.length} / ${count} taps`);
     if (now > measured.at(-1)! + intervalMs) return finish();
@@ -64,6 +78,7 @@ export function calibrationScreen(deps: CalibrationDeps) {
     const outcome = calibrate(deltas);
     if (!outcome) return idle(deltas.length < CALIBRATION.minTaps ? `Only ${deltas.length} of ${count} clicks had a tap` : "Taps too scattered to measure", "Tap here to try again");
     idle("", "");
+    pad.classList.add("done");
     result = outcome.offsetMs;
     const ms = Math.abs(result);
     const latency = deps.latencyMs();
@@ -80,7 +95,8 @@ export function calibrationScreen(deps: CalibrationDeps) {
     if (!run) return void start();
     if (deps.engine()?.ctx.state !== "running") return stop();
     run.taps.push(run.clock.fromEvent(timeStamp));
-    $("cal-pad").animate([{ background: "rgba(217, 178, 95, 0.25)" }, { background: "transparent" }], 150);
+    marks(run.taps.length);
+    pad.animate([{ backgroundColor: "rgba(211, 170, 92, 0.18)" }, { backgroundColor: "rgba(211, 170, 92, 0)" }], 180);
   }
 
   // Stops a run at once: clicks silenced, nothing measured.
@@ -91,7 +107,7 @@ export function calibrationScreen(deps: CalibrationDeps) {
     idle("Stopped", "Tap here to start again");
   }
 
-  $("cal-pad").addEventListener("pointerdown", (e) => tap(e.timeStamp));
+  pad.addEventListener("pointerdown", (e) => tap(e.timeStamp));
   $("cal-apply").addEventListener("click", () => result !== null && (deps.apply(result), deps.close()));
   $("cal-retry").addEventListener("click", () => void start());
   $("cal-cancel").addEventListener("click", () => (stop(), deps.close()));
