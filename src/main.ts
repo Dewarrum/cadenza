@@ -1,5 +1,6 @@
 // Screens: title -> piece list -> (how to play, once) -> play <-> pause -> results -> piece list.
-// Settings open from the piece list and the pause overlay; calibration from the settings.
+// Settings open from the piece list and the pause overlay; calibration from the settings; About
+// from the title and the piece list.
 import { AudioEngine, type Clock, ManualClock, reportedLatency } from "./audio/engine.ts";
 import { samplesCached } from "./audio/piano.ts";
 import { buildChart } from "./game/chart.ts";
@@ -12,6 +13,7 @@ import { loadPiece, PIECES, type PieceInfo } from "./pieces.ts";
 import { startPwa } from "./pwa.ts";
 import { Playfield } from "./render/playfield.ts";
 import { type Best, clearResults, loadResults, recordResult } from "./results.ts";
+import { aboutScreen } from "./screens/about.ts";
 import { calibrationScreen } from "./screens/calibration.ts";
 import { settingsScreen } from "./screens/settings.ts";
 import { approachFor, clampOffset, keyLabel, loadSettings, saveSettings, type Settings } from "./settings.ts";
@@ -25,7 +27,7 @@ const phoneLandscape = matchMedia("(orientation: landscape) and (pointer: coarse
 const touchDevice = matchMedia("(pointer: coarse)");
 const iOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
 
-type Screen = "title" | "list" | "howto" | "play" | "results" | "settings" | "calibration";
+type Screen = "title" | "list" | "howto" | "play" | "results" | "settings" | "calibration" | "about";
 type Session = { play: Play; clock: Clock; run: Run; piece: Piece; tier: TierName; frame: number; pausedAt: number | null };
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -39,6 +41,7 @@ let lastPlayed: [Piece, TierName] | null = null; // for Retry, and the tier the 
 let settings: Settings = loadSettings();
 let keyMap: Record<string, Source> = {};
 let settingsFrom: Screen = "list";
+let aboutFrom: Screen = "title";
 
 for (const el of document.querySelectorAll<HTMLElement>(".ios-only")) el.hidden = !iOS;
 if (touchDevice.matches) $("title").querySelector(".begin")!.textContent = "Tap to begin";
@@ -105,6 +108,16 @@ function openSettings(): void {
 }
 $("open-settings").addEventListener("click", openSettings);
 $("pause-settings").addEventListener("click", openSettings);
+
+const aboutUi = aboutScreen(PIECES, () => show(aboutFrom));
+function openAbout(e: Event): void {
+  e.stopPropagation(); // on the title a click anywhere else begins
+  aboutFrom = screen;
+  show("about");
+  $("about").scrollTop = 0;
+}
+$("title-about").addEventListener("click", openAbout);
+$("open-about").addEventListener("click", openAbout);
 applySettings();
 startPwa();
 
@@ -319,10 +332,11 @@ const lanes = new LanePointers($("field"), {
 });
 
 window.addEventListener("keydown", (e) => {
-  if (screen === "title") return begin();
+  if (screen === "title") return void (e.target instanceof HTMLButtonElement || begin()); // a focused About takes its own keys
   if (screen === "howto") return dismissHowto();
   if (screen === "settings") return settingsUi.key(e);
   if (screen === "calibration") return calibrationUi.key(e);
+  if (screen === "about") return aboutUi.key(e);
   if (screen === "results" && e.code === "Enter") return toList();
   if (screen !== "play" || !session) return;
   if (e.code === "Escape") return void (session.pausedAt === null ? pause() : resume());

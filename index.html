@@ -31,13 +31,17 @@
         <div class="foot">
           <p class="begin">Tap or press any key to begin</p>
           <p class="hint small ios-only" hidden>If you hear nothing, check the mute switch</p>
+          <button id="title-about" type="button" class="quiet">About</button>
         </div>
       </section>
 
       <section id="list" class="screen" hidden>
         <header class="bar">
           <h2>Pieces</h2>
-          <button id="open-settings" type="button" class="quiet">Settings</button>
+          <div class="bar-actions">
+            <button id="open-about" type="button" class="quiet">About</button>
+            <button id="open-settings" type="button" class="quiet">Settings</button>
+          </div>
         </header>
         <ul id="pieces"></ul>
         <footer class="foot">
@@ -200,6 +204,32 @@
             <button id="cal-apply" type="button">Apply</button>
           </div>
           <button id="cal-cancel" type="button" class="quiet">Cancel</button>
+        </div>
+      </section>
+
+      <section id="about" class="screen" hidden>
+        <header class="bar"><h2>About</h2></header>
+        <p class="about-lead">A piano rhythm game with classical pieces: play each note as it reaches the gold line and the piano sounds it, straight from the score. No recordings, no accounts, no tracking; once loaded, it plays offline.</p>
+        <section class="group" aria-labelledby="about-music">
+          <h3 id="about-music">Music</h3>
+          <ul id="credits" class="credits"></ul>
+          <p class="hint small">The charts Cadenza generates from these editions, in its source code, are shared under the same licenses.</p>
+        </section>
+        <section class="group" aria-labelledby="about-piano">
+          <h3 id="about-piano">Piano</h3>
+          <p>Splendid Grand Piano samples, a Steinway released into the public domain by Akai, in the <a href="https://github.com/sfzinstruments/SplendidGrandPiano" target="_blank" rel="noopener">sfzinstruments</a> edition. Played with <a href="https://github.com/danigb/smplr" target="_blank" rel="noopener">smplr</a>, MIT License.</p>
+        </section>
+        <section class="group" aria-labelledby="about-type">
+          <h3 id="about-type">Type</h3>
+          <p><a href="https://github.com/indestructible-type/Bodoni" target="_blank" rel="noopener">Bodoni Moda</a> and <a href="https://github.com/marcologous/hanken-grotesk" target="_blank" rel="noopener">Hanken Grotesk</a>, under the <a href="https://openfontlicense.org" target="_blank" rel="noopener">SIL Open Font License 1.1</a>.</p>
+        </section>
+        <section class="group" aria-labelledby="about-code">
+          <h3 id="about-code">Code</h3>
+          <p><a href="https://github.com/Dewarrum/cadenza/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>. Source on GitHub: <a href="https://github.com/Dewarrum/cadenza" target="_blank" rel="noopener">Dewarrum/cadenza</a>.</p>
+          <p id="version" class="hint small"></p>
+        </section>
+        <div class="foot sticky">
+          <button id="about-back" type="button">Back</button>
         </div>
       </section>
     </main>

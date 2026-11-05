@@ -11,8 +11,9 @@ import { SAMPLES_CACHE } from "./src/audio/samples.ts";
 const TAILNET_HOST = "studio.tail4d4c2e.ts.net";
 const tailnet = process.env.CADENZA_TAILNET === "1";
 const THEME = "#0e0b09";
+const { version } = JSON.parse(readFileSync(join(import.meta.dirname, "package.json"), "utf8"));
 
-// `virtual:pieces`: the piece list needs titles and levels only. Each pieces/<id>.json becomes a
+// `virtual:pieces`: the piece list needs titles and levels, the About screen the credits. Each pieces/<id>.json becomes a
 // separate asset (`?url`) that the game fetches when a tier is picked; the service worker
 // precaches it.
 function pieces(): Plugin {
@@ -31,7 +32,8 @@ function pieces(): Plugin {
         const p = JSON.parse(readFileSync(path, "utf8"));
         const levels = { easy: p.tiers.easy.level, normal: p.tiers.normal.level, hard: p.tiers.hard.level };
         imports.push(`import url${i} from ${JSON.stringify(`${path}?url`)};`);
-        return `{ ...${JSON.stringify({ id: p.id, title: p.title, composer: p.composer, opus: p.opus, levels })}, url: url${i} }`;
+        const credit = { page: p.source.page, engraver: p.source.engraver, license: p.license };
+        return `{ ...${JSON.stringify({ id: p.id, title: p.title, composer: p.composer, opus: p.opus, levels, ...credit })}, url: url${i} }`;
       });
       return `${imports.join("\n")}\nexport default [${entries.join(", ")}];\n`;
     },
@@ -39,6 +41,7 @@ function pieces(): Plugin {
 }
 
 export default defineConfig({
+  define: { __APP_VERSION__: JSON.stringify(version) }, // shown on the About screen
   server: {
     host: "127.0.0.1",
     port: 5184,

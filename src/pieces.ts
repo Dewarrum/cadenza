@@ -1,10 +1,20 @@
-// Piece catalogue and lazy loading. The catalogue (titles, levels, file URL) is generated at
-// build time by the `pieces` plugin in vite.config.ts; a piece file is fetched when one of its
-// tiers is picked (the service worker has it precached, so this works offline).
+// Piece catalogue and lazy loading. The catalogue (titles, levels, credits, file URL) is
+// generated at build time by the `pieces` plugin in vite.config.ts; a piece file is fetched when
+// one of its tiers is picked (the service worker has it precached, so this works offline).
 import catalogue from "virtual:pieces";
 import type { Piece, TierName } from "./piece.ts";
 
-export type PieceInfo = { id: string; title: string; composer: string; opus: string; levels: Record<TierName, number>; url: string };
+export type PieceInfo = {
+  id: string;
+  title: string;
+  composer: string;
+  opus: string;
+  levels: Record<TierName, number>;
+  page: string; // the source's Mutopia page
+  engraver: string;
+  license: string; // e.g. "CC BY-SA 4.0"
+  url: string;
+};
 
 export const PIECES: PieceInfo[] = catalogue;
 
