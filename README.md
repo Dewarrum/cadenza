@@ -3,9 +3,10 @@
 A browser piano rhythm game: classical pieces, falling notes over four piano-key lanes, real
 piano sound from the note data. See [DESIGN.md](DESIGN.md) for the product decisions.
 
-Status: slice S4. Two pieces (Chopin, Nocturne Op. 9 No. 2; Rachmaninoff, Prelude Op. 3 No. 2) on
+Status: slice S5. Two pieces (Chopin, Nocturne Op. 9 No. 2; Rachmaninoff, Prelude Op. 3 No. 2) on
 Easy, Normal and Hard, touch and desktop keys, portrait phone layout, pause and resume, how-to
-card, settings with audio offset calibration, best results, installable PWA that plays offline.
+card, settings with audio offset calibration, best results, installable PWA that plays offline,
+and the visual design (see Look).
 
 ## Run
 
@@ -54,19 +55,22 @@ to its default, unknown fields are dropped):
 
 - **Audio offset**: see Calibration below. The − / + buttons step it by 5 ms (±400 ms around the
   device latency).
-- **Approach time**: how long a note takes to fall to the line. Defaults Easy 1.5 s, Normal and
-  Hard 1.2 s; moving the slider (0.8-2.5 s) sets one time for every tier, "Reset to defaults"
-  goes back to the per-tier times.
+- **Approach time**: how long a note takes to fall to the line. **Per tier** (the default): Easy
+  1.5 s, Normal and Hard 1.2 s. **Same for all**: one time for every tier, set with the slider
+  (0.8-2.5 s), which starts from the time in effect for the tier being played (from the pause
+  overlay) or last played, else Easy's. The slider only shows in that mode; the value next to the
+  label is the time in effect.
 - **Volume**: master volume, applies at once, also to a paused piece.
 - **Key sound**: off = the whole piece plays by itself and hits only score. From the next play.
 - **Keys**: click a lane, press a key. A key already on another lane is refused, and so are Space
   (any lane on Easy), Esc (pause), Enter, Tab and the modifier keys. Defaults D F J K.
-- **Show how-to card again**, **Clear all results** (asks first).
+- **Show how-to card again**, **Clear all results** (asks first, in an in-app dialog).
 
 Best results live under `cadenza.results.v1`: per piece and tier the best accuracy, its grade
 and date, whether any run was a full combo, the max combo and the play count. The piece list
 shows the best grade on each tier button (`· FC` for a full combo); the results screen says
-"New best" (with the previous best) or shows the best to beat.
+"New best" (with the previous best) or shows the best to beat, and offers Retry and Back to
+pieces.
 
 ## Calibration
 
@@ -111,8 +115,36 @@ players with the next deploy without any manual step. When the sample files chan
 `SAMPLES_CACHE` (e.g. `cadenza-samples-v2`); the page deletes older `cadenza-samples-*` caches
 on start. The dev server has no service worker and does not cache samples.
 
-Icons in `public/icons/` are placeholders drawn by `npm run icons` (`tools/make-icons.ts`);
-S5 restyles them.
+Icons in `public/icons/` are drawn by `npm run icons`, see Look.
+
+## Look
+
+Dark lacquer with a warm light low in the middle, ivory keys, gilt for what is earned (the
+judgement line, Perfect, an S, a full combo, the mark, keyboard focus). The tokens are CSS custom
+properties at the top of `src/style.css` (palette, a type scale stepping by a major third,
+spacing, radii, shadows); the play screen's colours are at the top of `src/render/playfield.ts`.
+Judgements: Perfect gilt, Great moonlight blue, Good pewter, Miss felt red.
+
+- **Fonts**, self-hosted from `@fontsource` (latin subset, woff2 only, precached by the service
+  worker, 58 KB in all), both under the SIL Open Font License 1.1:
+  [Bodoni Moda](https://github.com/indestructible-type/Bodoni) (The Bodoni Moda Project
+  Authors), regular and italic, for titles, composers, grades and the play screen's words;
+  [Hanken Grotesk](https://github.com/marcologous/hanken-grotesk) (The Hanken Grotesk Project
+  Authors), regular and semibold, for everything else (its figures are tabular). `src/fonts.css` declares
+  them straight from the packages so no woff fallbacks are built.
+- **Play screen**, top to bottom: a header band (combo, count-in, pause), the highway with a bar
+  and beat grid scrolling with the notes, the gilt judgement line, the fallboard strip where the
+  judgement word shows, and four ivory keys that light on press with a glow up the lane. A
+  note's gilt bottom edge meets the line on the beat; chord notes are linked by a thin bar.
+  Static parts are painted once per size into offscreen canvases; a frame creates no gradients
+  and uses no shadow blur. With `prefers-reduced-motion` the glow goes out at once on release
+  instead of fading (and the title screen does not fade in).
+- **Icons**: `npm run icons` (`tools/make-icons.ts`) draws the gilt fermata of the title screen
+  (the `<symbol id="fermata">` in `index.html`, same geometry) on lacquer into `public/icons/`:
+  192 and 512 px, a maskable 512 px with the mark inside the safe zone, and the 180 px Apple
+  touch icon. Plain Node, no image tools; commit the PNGs.
+- **Wide screens**: the phone-shaped column is lifted off the dark surround by a faint edge and
+  a soft shadow.
 
 ## Test
 
@@ -232,6 +264,7 @@ tails. It skips files that exist; `-- --force` re-encodes all. Needs ffmpeg and 
   No. 2, engraved by Petro Kostandy, is licensed
   [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Charts, piece files and
   overrides derived from them (`pieces/`) are under the same licenses.
+- Fonts: Bodoni Moda and Hanken Grotesk, SIL Open Font License 1.1 (see Look).
 - Piano samples: Splendid Grand Piano, public-domain Steinway samples released by Akai, SFZ
   edition by [sfzinstruments](https://github.com/sfzinstruments/SplendidGrandPiano), encoded
   for [smplr](https://github.com/danigb/smplr) (MIT).
